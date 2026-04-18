@@ -11,14 +11,8 @@ This guide covers the complete authentication implementation for SG Embroidery w
 ## 🚀 Quick Setup
 
 ### 1. Environment Configuration
-Create a `.env` file in the frontend root:
 
-```bash
-# Copy the example file
-cp .env.example .env
-
-# Edit the .env file with your actual values
-```
+Create **`frontend/.env`** in the frontend root and add your values.
 
 Required environment variables:
 ```env

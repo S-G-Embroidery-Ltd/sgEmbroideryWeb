@@ -13,6 +13,11 @@ import { ordersAPI, quoteRequestsAPI } from '../services/api';
 
 type TabId = 'orders' | 'quotes' | 'logos';
 
+function paymentStatusLabel(s: string): string {
+  if (s === 'awaiting_manual_confirmation') return 'Awaiting M-Pesa verification';
+  return s;
+}
+
 type ApiOrder = {
   _id: string;
   orderNumber: string;
@@ -195,7 +200,7 @@ const MyActivity = () => {
                     <div>
                       <p className="font-semibold text-primary-900">{o.orderNumber}</p>
                       <p className="text-sm text-primary-600">
-                        {new Date(o.createdAt).toLocaleString()} · {o.paymentStatus} · {o.status}
+                        {new Date(o.createdAt).toLocaleString()} · {paymentStatusLabel(o.paymentStatus)} · {o.status}
                       </p>
                       {o.items && o.items.length > 0 && (
                         <p className="text-sm text-primary-700 mt-2 line-clamp-2">
@@ -293,7 +298,7 @@ const MyActivity = () => {
                     <div>
                       <p className="font-semibold text-primary-900">{o.orderNumber}</p>
                       <p className="text-sm text-primary-600">
-                        {new Date(o.createdAt).toLocaleString()} · Payment: {o.paymentStatus}
+                        {new Date(o.createdAt).toLocaleString()} · Payment: {paymentStatusLabel(o.paymentStatus)}
                       </p>
                       {o.digitizing?.originalFileName && (
                         <p className="text-sm text-primary-700 mt-1">File: {o.digitizing.originalFileName}</p>

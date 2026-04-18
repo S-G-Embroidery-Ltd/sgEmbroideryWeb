@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const Order_1 = __importDefault(require("../models/Order"));
 const auth_1 = require("../middleware/auth");
+const email_1 = require("../services/email");
 const router = express_1.default.Router();
 const TAX_RATE = 0.16;
 const FREE_SHIPPING_THRESHOLD = 5000;
@@ -27,7 +28,8 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ message: 'User not authenticated' });
         }
-        const { items, shippingAddress } = req.body;
+        const { items, shippingAddress, paymentChannel: rawChannel } = req.body;
+        const paymentChannel = rawChannel === 'mpesa_manual' ? 'mpesa_manual' : 'paystack';
         if (!items || items.length === 0) {
             return res.status(400).json({ message: 'Order must contain at least one item' });
         }
@@ -67,9 +69,13 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
             shippingCost,
             total,
             shippingAddress,
+            paymentChannel,
         });
         await order.save();
         await order.populate('items.product');
+        if (!order.orderType || order.orderType === 'standard') {
+            void (0, email_1.emailNewShopOrder)(order).catch((e) => console.error('[email] new shop order:', e));
+        }
         res.status(201).json({
             message: 'Order created successfully',
             order,
@@ -103,6 +109,74 @@ router.get('/my-orders', auth_1.authMiddleware, async (req, res) => {
                 total,
                 pages: Math.ceil(total / limitNum),
             },
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+// Submit M-Pesa confirmation code (Till / Buy Goods) — staff confirms via separate admin + internal API
+router.post('/:id/mpesa-code', auth_1.authMiddleware, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        const code = (req.body?.code ?? '').toString().trim().replace(/\s+/g, '');
+        if (!code || code.length < 4) {
+            return res.status(400).json({ message: 'Valid M-Pesa code is required' });
+        }
+        const order = await Order_1.default.findOne({
+            _id: req.params.id,
+            userId: req.user.userId,
+        });
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        if ((order.paymentChannel || 'paystack') !== 'mpesa_manual') {
+            return res.status(400).json({ message: 'This order does not use M-Pesa manual payment' });
+        }
+        if (order.paymentStatus === 'paid') {
+            return res.status(400).json({ message: 'Order is already paid' });
+        }
+        order.mpesaTransactionCode = code;
+        order.mpesaSubmittedAt = new Date();
+        order.paymentStatus = 'awaiting_manual_confirmation';
+        await order.save();
+        void (0, email_1.emailMpesaCodeSubmitted)(order, code).catch((e) => console.error('[email] mpesa code:', e));
+        res.json({
+            message: 'M-Pesa code received. We will verify your payment shortly.',
+            order,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+// Receipt summary (JSON) for paid orders
+router.get('/:id/receipt', auth_1.authMiddleware, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        const order = await Order_1.default.findOne({
+            _id: req.params.id,
+            userId: req.user.userId,
+        }).populate('items.product');
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        if (order.paymentStatus !== 'paid') {
+            return res.status(400).json({ message: 'Order is not paid yet' });
+        }
+        res.json({
+            orderNumber: order.orderNumber,
+            paidAt: order.paidAt,
+            total: order.total,
+            paymentChannel: order.paymentChannel,
+            paystackReference: order.paystackReference || order.paymentId,
+            mpesaTransactionCode: order.mpesaTransactionCode,
+            items: order.items,
+            shippingAddress: order.shippingAddress,
         });
     }
     catch (error) {

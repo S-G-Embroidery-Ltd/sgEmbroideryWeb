@@ -127,15 +127,26 @@ const orderSchema = new mongoose_1.Schema({
         default: 'pending',
     },
     paymentId: String,
+    paymentChannel: {
+        type: String,
+        enum: ['paystack', 'mpesa_manual'],
+        default: 'paystack',
+    },
     paymentStatus: {
         type: String,
         required: true,
         enum: {
-            values: ['pending', 'paid', 'failed', 'refunded'],
-            message: 'Payment status must be pending, paid, failed, or refunded',
+            values: ['pending', 'awaiting_manual_confirmation', 'paid', 'failed', 'refunded'],
+            message: 'Invalid payment status',
         },
         default: 'pending',
     },
+    mpesaTransactionCode: { type: String, trim: true },
+    mpesaSubmittedAt: { type: Date },
+    paystackReference: { type: String, trim: true },
+    paidAt: { type: Date },
+    paystackAmount: { type: Number },
+    receiptEmailedAt: { type: Date },
     shippingAddress: {
         name: {
             type: String,
@@ -182,6 +193,9 @@ const orderSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ mpesaTransactionCode: 1 }, { sparse: true });
 // Generate order number before saving
 orderSchema.pre('save', async function (next) {
     if (!this.orderNumber) {

@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Order from '../models/Order';
 import { authMiddleware } from '../middleware/auth';
+import { emailNewShopOrder, emailMpesaCodeSubmitted } from '../services/email';
 
 const router = express.Router();
 
@@ -28,7 +29,9 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const { items, shippingAddress } = req.body;
+    const { items, shippingAddress, paymentChannel: rawChannel } = req.body;
+    const paymentChannel =
+      rawChannel === 'mpesa_manual' ? 'mpesa_manual' : 'paystack';
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: 'Order must contain at least one item' });
@@ -75,10 +78,15 @@ router.post('/', authMiddleware, async (req, res) => {
       shippingCost,
       total,
       shippingAddress,
+      paymentChannel,
     });
 
     await order.save();
     await order.populate('items.product');
+
+    if (!order.orderType || order.orderType === 'standard') {
+      void emailNewShopOrder(order).catch((e) => console.error('[email] new shop order:', e));
+    }
 
     res.status(201).json({
       message: 'Order created successfully',
@@ -117,6 +125,86 @@ router.get('/my-orders', authMiddleware, async (req, res) => {
         total,
         pages: Math.ceil(total / limitNum),
       },
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Submit M-Pesa confirmation code (Till / Buy Goods) — staff confirms via separate admin + internal API
+router.post('/:id/mpesa-code', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const code = (req.body?.code ?? '').toString().trim().replace(/\s+/g, '');
+    if (!code || code.length < 4) {
+      return res.status(400).json({ message: 'Valid M-Pesa code is required' });
+    }
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user.userId,
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if ((order.paymentChannel || 'paystack') !== 'mpesa_manual') {
+      return res.status(400).json({ message: 'This order does not use M-Pesa manual payment' });
+    }
+
+    if (order.paymentStatus === 'paid') {
+      return res.status(400).json({ message: 'Order is already paid' });
+    }
+
+    order.mpesaTransactionCode = code;
+    order.mpesaSubmittedAt = new Date();
+    order.paymentStatus = 'awaiting_manual_confirmation';
+    await order.save();
+
+    void emailMpesaCodeSubmitted(order, code).catch((e) => console.error('[email] mpesa code:', e));
+
+    res.json({
+      message: 'M-Pesa code received. We will verify your payment shortly.',
+      order,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Receipt summary (JSON) for paid orders
+router.get('/:id/receipt', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user.userId,
+    }).populate('items.product');
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.paymentStatus !== 'paid') {
+      return res.status(400).json({ message: 'Order is not paid yet' });
+    }
+
+    res.json({
+      orderNumber: order.orderNumber,
+      paidAt: order.paidAt,
+      total: order.total,
+      paymentChannel: order.paymentChannel,
+      paystackReference: order.paystackReference || order.paymentId,
+      mpesaTransactionCode: order.mpesaTransactionCode,
+      items: order.items,
+      shippingAddress: order.shippingAddress,
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

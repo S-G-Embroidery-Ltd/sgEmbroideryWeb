@@ -73,7 +73,7 @@
 backend/
 ├── package.json          # Use package.example.json
 ├── server.js             # Use server.example.js
-├── .env                  # Use .env.example
+├── .env                  # Local secrets (gitignored)
 ├── models/
 │   └── User.js           # User model
 ├── routes/

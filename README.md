@@ -74,20 +74,43 @@ A modern e-commerce website for SG Embroidery, featuring textile sales, embroide
    ```
 
 4. **Set up environment variables**
-   
-   **Backend** (copy `.env.example` to `.env`):
+
+   Create **`backend/.env`** and **`frontend/.env`** in each folder (they are gitignored; keep secrets out of git).
+
+   **Backend — `backend/.env`** (minimum to run locally; add the rest for production):
+
    ```env
    PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/sg-embroidery
+   MONGODB_URI=mongodb://localhost:27017/sg_embroidery
    JWT_SECRET=your-super-secret-jwt-key
-   FRONTEND_URL=http://localhost:3000
-   PAYSTACK_SECRET_KEY=your-paystack-secret-key
+   FRONTEND_URL=http://localhost:5173
+   GOOGLE_CLIENT_ID=
+   PAYSTACK_SECRET_KEY=
+   PAYSTACK_CURRENCY=KES
+   PAYSTACK_WEBHOOK_SECRET=
+   SITE_URL=http://localhost:5173
+   SMTP_HOST=
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=
+   SMTP_PASS=
+   EMAIL_FROM=
+   BUSINESS_NOTIFY_EMAIL=
+   MPESA_TILL=
+   MPESA_PAYBILL=
+   MPESA_ACCOUNT_LABEL=
+   INTERNAL_ADMIN_API_KEY=
+   PUBLIC_API_URL=
    ```
-   
-   **Frontend** (copy `.env.example` to `.env`):
+
+   **Frontend — `frontend/.env`**:
+
    ```env
    VITE_API_URL=http://localhost:5000/api
-   VITE_PAYSTACK_PUBLIC_KEY=your-paystack-public-key
+   VITE_GOOGLE_CLIENT_ID=
+   VITE_GOOGLE_OAUTH_CLIENT_ID=
+   VITE_PUBLIC_ASSET_BASE_URL=
+   VITE_WHATSAPP_CHANNEL_URL=
    ```
 
 5. **Start the development servers**
@@ -103,7 +126,7 @@ A modern e-commerce website for SG Embroidery, featuring textile sales, embroide
    ```
 
 6. **Access the application**
-   - Frontend: http://localhost:3000
+   - Frontend: http://localhost:5173 (Vite default)
    - Backend API: http://localhost:5000
    - Health check: http://localhost:5000/health
 

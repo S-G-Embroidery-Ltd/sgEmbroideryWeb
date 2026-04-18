@@ -3,6 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -16,8 +18,12 @@ const orders_1 = __importDefault(require("./routes/orders"));
 const user_1 = __importDefault(require("./routes/user"));
 const tools_1 = __importDefault(require("./routes/tools"));
 const payments_1 = __importDefault(require("./routes/payments"));
+const paystackWebhook_1 = __importDefault(require("./routes/paystackWebhook"));
+const internal_1 = __importDefault(require("./routes/internal"));
 const digitizingRequests_1 = __importDefault(require("./routes/digitizingRequests"));
 const quoteRequests_1 = __importDefault(require("./routes/quoteRequests"));
+const checkoutInfo_1 = require("./routes/checkoutInfo");
+const corsOrigins_1 = require("./utils/corsOrigins");
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -32,20 +38,27 @@ const limiter = (0, express_rate_limit_1.default)({
 app.use((0, helmet_1.default)());
 app.use(limiter);
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL
-        ? process.env.FRONTEND_URL
-        : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+    origin: (0, corsOrigins_1.getCorsOrigins)(),
     credentials: true,
 }));
+// Paystack webhook: raw body required for HMAC (must be before express.json)
+app.use('/api/payments/webhook', express_1.default.raw({ type: 'application/json' }), paystackWebhook_1.default);
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+const uploadsRoot = path_1.default.join(process.cwd(), 'uploads');
+if (!fs_1.default.existsSync(uploadsRoot)) {
+    fs_1.default.mkdirSync(uploadsRoot, { recursive: true });
+}
+app.use('/uploads', express_1.default.static(uploadsRoot));
 // Routes
+app.get('/api/checkout-info', checkoutInfo_1.getCheckoutInfo);
 app.use('/api/auth', auth_1.default);
 app.use('/api/products', products_1.default);
 app.use('/api/orders', orders_1.default);
 app.use('/api/user', user_1.default);
 app.use('/api/tools', tools_1.default);
 app.use('/api/payments', payments_1.default);
+app.use('/api/internal', internal_1.default);
 app.use('/api/digitizing-requests', digitizingRequests_1.default);
 app.use('/api/quote-requests', quoteRequests_1.default);
 // Health check

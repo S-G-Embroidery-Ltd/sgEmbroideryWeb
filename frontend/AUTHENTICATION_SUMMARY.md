@@ -25,13 +25,15 @@
 ## 🔧 Next Steps to Complete Setup
 
 ### 1. Environment Configuration
-```bash
-# Create .env file
-cp .env.example .env
 
-# Add your Google Client ID
+Create **`frontend/.env`** in the frontend root and set:
+
+```env
+VITE_API_URL=http://localhost:5000/api
 VITE_GOOGLE_CLIENT_ID=your-google-client-id-here
 ```
+
+Optional: `VITE_GOOGLE_OAUTH_CLIENT_ID` if you use that name instead.
 
 ### 2. Google OAuth Setup
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)

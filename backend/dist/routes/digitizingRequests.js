@@ -10,6 +10,7 @@ const multer_1 = __importDefault(require("multer"));
 const auth_1 = require("../middleware/auth");
 const Order_1 = __importDefault(require("../models/Order"));
 const pricing_1 = require("../config/pricing");
+const email_1 = require("../services/email");
 const router = express_1.default.Router();
 const TAX_RATE = 0.16;
 /** LOGO_ORIGINATION_KES is the gross amount charged (inclusive of VAT). */
@@ -104,6 +105,15 @@ router.post('/', auth_1.authMiddleware, upload.single('logo'), async (req, res) 
         });
         try {
             await order.save();
+            void (0, email_1.emailNewDigitizingOrder)({
+                name,
+                email,
+                phone,
+                company: company || undefined,
+                orderNumber: order.orderNumber,
+                originalFileName: req.file.originalname,
+                notes: notes || undefined,
+            }).catch((e) => console.error('[email] digitizing:', e));
         }
         catch (saveErr) {
             if (req.file?.path && fs_1.default.existsSync(req.file.path)) {

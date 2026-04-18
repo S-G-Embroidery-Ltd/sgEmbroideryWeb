@@ -9,6 +9,7 @@ const path_1 = __importDefault(require("path"));
 const multer_1 = __importDefault(require("multer"));
 const auth_1 = require("../middleware/auth");
 const QuoteRequest_1 = __importDefault(require("../models/QuoteRequest"));
+const email_1 = require("../services/email");
 const router = express_1.default.Router();
 const refDir = path_1.default.join(process.cwd(), 'uploads', 'quote-references');
 if (!fs_1.default.existsSync(refDir)) {
@@ -68,6 +69,17 @@ router.post('/', auth_1.authMiddleware, upload.single('reference'), async (req, 
             status: 'submitted',
         });
         await doc.save();
+        void (0, email_1.emailNewQuoteRequest)({
+            name,
+            email,
+            phone,
+            company: company || undefined,
+            description,
+            quantity: quantity || undefined,
+            timeline: timeline || undefined,
+            specialInstructions: specialInstructions || undefined,
+            referenceFile,
+        }).catch((e) => console.error('[email] quote:', e));
         res.status(201).json({
             message: 'Quote request submitted',
             quoteRequest: doc,

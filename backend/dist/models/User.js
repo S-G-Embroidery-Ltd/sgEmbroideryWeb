@@ -55,9 +55,21 @@ const userSchema = new mongoose_1.Schema({
     },
     password: {
         type: String,
-        required: [true, 'Password is required'],
+        required() {
+            return !this.googleId;
+        },
         minlength: [6, 'Password must be at least 6 characters long'],
         select: false,
+    },
+    googleId: {
+        type: String,
+        sparse: true,
+        unique: true,
+        trim: true,
+    },
+    avatar: {
+        type: String,
+        trim: true,
     },
     favorites: [{
             type: mongoose_1.Schema.Types.ObjectId,
@@ -70,22 +82,26 @@ const userSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
-// Hash password before saving
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password'))
         return next();
+    const pwd = this.get('password');
+    if (!pwd)
+        return next();
     try {
         const salt = await bcryptjs_1.default.genSalt(12);
-        this.password = await bcryptjs_1.default.hash(this.password, salt);
+        this.set('password', await bcryptjs_1.default.hash(pwd, salt));
         next();
     }
     catch (error) {
         next(error);
     }
 });
-// Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
-    return bcryptjs_1.default.compare(candidatePassword, this.password);
+    const pwd = this.get('password');
+    if (!pwd)
+        return false;
+    return bcryptjs_1.default.compare(candidatePassword, pwd);
 };
 exports.default = mongoose_1.default.model('User', userSchema);
 //# sourceMappingURL=User.js.map

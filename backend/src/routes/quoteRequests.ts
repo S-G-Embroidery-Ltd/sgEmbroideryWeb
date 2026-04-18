@@ -4,6 +4,7 @@ import path from 'path';
 import multer from 'multer';
 import { authMiddleware } from '../middleware/auth';
 import QuoteRequest from '../models/QuoteRequest';
+import { emailNewQuoteRequest } from '../services/email';
 
 const router = express.Router();
 
@@ -72,6 +73,18 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
     });
 
     await doc.save();
+
+    void emailNewQuoteRequest({
+      name,
+      email,
+      phone,
+      company: company || undefined,
+      description,
+      quantity: quantity || undefined,
+      timeline: timeline || undefined,
+      specialInstructions: specialInstructions || undefined,
+      referenceFile,
+    }).catch((e) => console.error('[email] quote:', e));
 
     res.status(201).json({
       message: 'Quote request submitted',

@@ -5,6 +5,7 @@ import multer from 'multer';
 import { authMiddleware } from '../middleware/auth';
 import Order from '../models/Order';
 import { LOGO_ORIGINATION_KES } from '../config/pricing';
+import { emailNewDigitizingOrder } from '../services/email';
 
 const router = express.Router();
 
@@ -114,6 +115,15 @@ router.post('/', authMiddleware, upload.single('logo'), async (req, res) => {
 
     try {
       await order.save();
+      void emailNewDigitizingOrder({
+        name,
+        email,
+        phone,
+        company: company || undefined,
+        orderNumber: order.orderNumber,
+        originalFileName: req.file.originalname,
+        notes: notes || undefined,
+      }).catch((e) => console.error('[email] digitizing:', e));
     } catch (saveErr) {
       if (req.file?.path && fs.existsSync(req.file.path)) {
         try {

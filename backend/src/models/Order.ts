@@ -36,7 +36,19 @@ export interface IOrder extends Document {
   total: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentId?: string;
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  paymentChannel: 'paystack' | 'mpesa_manual';
+  paymentStatus:
+    | 'pending'
+    | 'awaiting_manual_confirmation'
+    | 'paid'
+    | 'failed'
+    | 'refunded';
+  mpesaTransactionCode?: string;
+  mpesaSubmittedAt?: Date;
+  paystackReference?: string;
+  paidAt?: Date;
+  paystackAmount?: number;
+  receiptEmailedAt?: Date;
   shippingAddress: {
     name: string;
     email: string;
@@ -149,15 +161,26 @@ const orderSchema = new Schema<IOrder>({
     default: 'pending',
   },
   paymentId: String,
+  paymentChannel: {
+    type: String,
+    enum: ['paystack', 'mpesa_manual'],
+    default: 'paystack',
+  },
   paymentStatus: {
     type: String,
     required: true,
     enum: {
-      values: ['pending', 'paid', 'failed', 'refunded'],
-      message: 'Payment status must be pending, paid, failed, or refunded',
+      values: ['pending', 'awaiting_manual_confirmation', 'paid', 'failed', 'refunded'],
+      message: 'Invalid payment status',
     },
     default: 'pending',
   },
+  mpesaTransactionCode: { type: String, trim: true },
+  mpesaSubmittedAt: { type: Date },
+  paystackReference: { type: String, trim: true },
+  paidAt: { type: Date },
+  paystackAmount: { type: Number },
+  receiptEmailedAt: { type: Date },
   shippingAddress: {
     name: {
       type: String,
@@ -204,6 +227,10 @@ const orderSchema = new Schema<IOrder>({
 }, {
   timestamps: true,
 });
+
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ mpesaTransactionCode: 1 }, { sparse: true });
 
 // Generate order number before saving
 orderSchema.pre('save', async function(next) {

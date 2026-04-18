@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -10,7 +9,14 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to include auth token
+/** No auth header, no 401 redirect — used for Paystack return verification */
+const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -27,12 +33,10 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid, clear local storage and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -41,18 +45,15 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API
 export const authAPI = {
   register: (userData: { name: string; email: string; password: string }) =>
     api.post('/auth/register', userData),
   login: (credentials: { email: string; password: string }) =>
     api.post('/auth/login', credentials),
-  googleLogin: (data: { token: string }) =>
-    api.post('/auth/google', data),
+  googleLogin: (data: { token: string }) => api.post('/auth/google', data),
   getCurrentUser: () => api.get('/auth/me'),
 };
 
-// Products API
 export const productsAPI = {
   getAll: (params?: {
     category?: string;
@@ -69,7 +70,10 @@ export const productsAPI = {
     api.get('/products/search/query', { params: { q: query, category } }),
 };
 
-// Orders API
+export const checkoutInfoAPI = {
+  get: () => publicApi.get('/checkout-info'),
+};
+
 export const ordersAPI = {
   create: (orderData: {
     items: Array<{
@@ -91,15 +95,18 @@ export const ordersAPI = {
       country: string;
       postalCode: string;
     };
+    paymentChannel?: 'paystack' | 'mpesa_manual';
   }) => api.post('/orders', orderData),
   getMyOrders: (params?: { page?: number; limit?: number }) =>
     api.get('/orders/my-orders', { params }),
   getById: (id: string) => api.get(`/orders/${id}`),
+  getReceipt: (id: string) => api.get(`/orders/${id}/receipt`),
+  submitMpesaCode: (orderId: string, code: string) =>
+    api.post(`/orders/${orderId}/mpesa-code`, { code }),
   updateStatus: (id: string, status: string) =>
     api.patch(`/orders/${id}/status`, { status }),
 };
 
-// User API
 export const userAPI = {
   addToFavorites: (productId: string) =>
     api.post('/user/favorites', { productId }),
@@ -110,7 +117,6 @@ export const userAPI = {
     api.patch('/user/profile', data),
 };
 
-// Tools API
 export const toolsAPI = {
   convertFile: (file: File, sourceFormat: string, targetFormat: string) => {
     const formData = new FormData();
@@ -151,19 +157,17 @@ export const toolsAPI = {
   },
 };
 
-// Payments API (amount is taken from the order on the server)
 export const paymentsAPI = {
   initiate: (data: { orderId: string; email: string }) =>
     api.post('/payments/initiate', data),
-  verify: (reference: string) => api.post('/payments/verify', { reference }),
+  verify: (reference: string) =>
+    publicApi.post('/payments/verify', { reference }),
 };
 
-/** Logo digitizing: multipart form (logo + fields) creates order; then call payments.initiate. */
 export const digitizingRequestsAPI = {
   create: (formData: FormData) => api.post('/digitizing-requests', formData),
 };
 
-/** Project quote requests (auth); optional reference file as field name `reference`. */
 export const quoteRequestsAPI = {
   create: (formData: FormData) => api.post('/quote-requests', formData),
   getMy: () => api.get('/quote-requests/my'),

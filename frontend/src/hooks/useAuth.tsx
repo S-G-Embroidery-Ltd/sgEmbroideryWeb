@@ -81,38 +81,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const loginWithGoogle = async () => {
-    try {
-      // Initialize Google Sign-In
-      const { google } = window as any;
-      if (!google) {
-        throw new Error('Google Sign-In not available');
+  const loginWithGoogle = () => {
+    const clientId =
+      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+      import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID ||
+      '';
+    if (!clientId) {
+      return Promise.reject(new Error('Google client ID is not configured (VITE_GOOGLE_CLIENT_ID)'));
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const google = (window as { google?: unknown }).google as
+        | { accounts?: { oauth2?: { initTokenClient: (opts: unknown) => { requestAccessToken: () => void } } } }
+        | undefined;
+      if (!google?.accounts?.oauth2) {
+        reject(new Error('Google Sign-In not available'));
+        return;
       }
 
       const client = google.accounts.oauth2.initTokenClient({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id',
-        scope: 'email profile',
-        callback: async (tokenResponse: any) => {
-          if (tokenResponse.access_token) {
-            try {
-              // Send token to backend for verification
-              const response = await authAPI.googleLogin({ token: tokenResponse.access_token });
-              const { token, user: userData } = response.data;
-              
-              localStorage.setItem('token', token);
-              localStorage.setItem('user', JSON.stringify(userData));
-              setUser(userData);
-            } catch (error: any) {
-              throw new Error(error.response?.data?.message || 'Google login failed');
-            }
+        client_id: clientId,
+        scope: 'email profile openid',
+        callback: async (tokenResponse: { access_token?: string; error?: string }) => {
+          if (tokenResponse.error) {
+            reject(new Error(tokenResponse.error));
+            return;
+          }
+          if (!tokenResponse.access_token) {
+            reject(new Error('No access token from Google'));
+            return;
+          }
+          try {
+            const response = await authAPI.googleLogin({ token: tokenResponse.access_token });
+            const { token, user: userData } = response.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
+            resolve();
+          } catch (error: unknown) {
+            const msg =
+              error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : null;
+            reject(new Error(msg || 'Google login failed'));
           }
         },
       });
 
       client.requestAccessToken();
-    } catch (error: any) {
-      throw new Error(error.message || 'Google login failed');
-    }
+    });
   };
 
   const logout = () => {

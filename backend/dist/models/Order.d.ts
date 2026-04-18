@@ -33,7 +33,14 @@ export interface IOrder extends Document {
     total: number;
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
     paymentId?: string;
-    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+    paymentChannel: 'paystack' | 'mpesa_manual';
+    paymentStatus: 'pending' | 'awaiting_manual_confirmation' | 'paid' | 'failed' | 'refunded';
+    mpesaTransactionCode?: string;
+    mpesaSubmittedAt?: Date;
+    paystackReference?: string;
+    paidAt?: Date;
+    paystackAmount?: number;
+    receiptEmailedAt?: Date;
     shippingAddress: {
         name: string;
         email: string;

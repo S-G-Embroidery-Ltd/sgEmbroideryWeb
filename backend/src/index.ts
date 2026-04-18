@@ -1,3 +1,5 @@
+import path from 'path';
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -12,8 +14,12 @@ import orderRoutes from './routes/orders';
 import userRoutes from './routes/user';
 import toolsRoutes from './routes/tools';
 import paymentRoutes from './routes/payments';
+import paystackWebhookRouter from './routes/paystackWebhook';
+import internalRoutes from './routes/internal';
 import digitizingRequestRoutes from './routes/digitizingRequests';
 import quoteRequestRoutes from './routes/quoteRequests';
+import { getCheckoutInfo } from './routes/checkoutInfo';
+import { getCorsOrigins } from './utils/corsOrigins';
 
 // Load environment variables
 dotenv.config();
@@ -32,21 +38,31 @@ const limiter = rateLimit({
 app.use(helmet());
 app.use(limiter);
 app.use(cors({
-  origin: process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL
-    : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  origin: getCorsOrigins(),
   credentials: true,
 }));
+
+// Paystack webhook: raw body required for HMAC (must be before express.json)
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }), paystackWebhookRouter);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+const uploadsRoot = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsRoot)) {
+  fs.mkdirSync(uploadsRoot, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsRoot));
+
 // Routes
+app.get('/api/checkout-info', getCheckoutInfo);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/internal', internalRoutes);
 app.use('/api/digitizing-requests', digitizingRequestRoutes);
 app.use('/api/quote-requests', quoteRequestRoutes);
 
