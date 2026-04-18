@@ -17,6 +17,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (config.data instanceof FormData && config.headers && typeof config.headers === 'object') {
+      delete (config.headers as Record<string, unknown>)['Content-Type'];
+    }
     return config;
   },
   (error) => {
@@ -69,8 +72,25 @@ export const productsAPI = {
 // Orders API
 export const ordersAPI = {
   create: (orderData: {
-    items: any[];
-    shippingAddress: any;
+    items: Array<{
+      name: string;
+      price: number;
+      quantity: number;
+      color?: string;
+      size?: string;
+      image?: string;
+      id?: string;
+      product?: string;
+    }>;
+    shippingAddress: {
+      name: string;
+      email: string;
+      phone: string;
+      address: string;
+      city: string;
+      country: string;
+      postalCode: string;
+    };
   }) => api.post('/orders', orderData),
   getMyOrders: (params?: { page?: number; limit?: number }) =>
     api.get('/orders/my-orders', { params }),
@@ -131,14 +151,22 @@ export const toolsAPI = {
   },
 };
 
-// Payments API
+// Payments API (amount is taken from the order on the server)
 export const paymentsAPI = {
-  initiate: (data: {
-    orderId: string;
-    email: string;
-    amount: number;
-  }) => api.post('/payments/initiate', data),
+  initiate: (data: { orderId: string; email: string }) =>
+    api.post('/payments/initiate', data),
   verify: (reference: string) => api.post('/payments/verify', { reference }),
+};
+
+/** Logo digitizing: multipart form (logo + fields) creates order; then call payments.initiate. */
+export const digitizingRequestsAPI = {
+  create: (formData: FormData) => api.post('/digitizing-requests', formData),
+};
+
+/** Project quote requests (auth); optional reference file as field name `reference`. */
+export const quoteRequestsAPI = {
+  create: (formData: FormData) => api.post('/quote-requests', formData),
+  getMy: () => api.get('/quote-requests/my'),
 };
 
 export default api;

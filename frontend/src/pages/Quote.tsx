@@ -1,7 +1,21 @@
-import { useState } from 'react';
-import { Upload, X, Check, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Upload, X, Check, ArrowRight, Loader2 } from 'lucide-react';
+import { LOGO_ORIGINATION_KES } from '../config/pricing';
+import { useAuth } from '../hooks/useAuth';
+import { quoteRequestsAPI } from '../services/api';
+import {
+  savePendingQuote,
+  loadPendingQuote,
+  clearPendingQuote,
+  dataURLToFile,
+} from '../utils/pendingForms';
 
+/** General project quote — uniforms, bulk, products, mixed jobs. For logo digitizing only, use /logo-embroidery. */
 const Quote = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -10,119 +24,157 @@ const Quote = () => {
     description: '',
     quantity: '',
     timeline: '',
-    specialInstructions: ''
+    specialInstructions: '',
   });
 
-  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (searchParams.get('resume') !== '1') return;
+    const pending = loadPendingQuote();
+    if (pending) {
+      setFormData(pending.formData);
+      if (pending.referenceDataUrl && pending.referenceName) {
+        setReferencePreview(pending.referenceDataUrl);
+        dataURLToFile(pending.referenceDataUrl, pending.referenceName).then(setReferenceFile).catch(() => {});
+      }
+      if (pending.referenceOmitted) {
+        setDraftNotice('Your reference file was too large to keep in the browser. Please attach it again if needed.');
+      } else {
+        setDraftNotice('Welcome back — your draft is restored. Submit when you’re ready.');
+      }
+    }
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData((f) => ({
+        ...f,
+        name: user.name || f.name,
+        email: user.email || f.email,
+      }));
+    }
+  }, [user]);
+
+  const handleReferenceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedImage(file);
+    if (!file) return;
+    setReferenceFile(file);
+    if (file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
+      reader.onload = (ev) => setReferencePreview(ev.target?.result as string);
       reader.readAsDataURL(file);
+    } else {
+      setReferencePreview(null);
     }
   };
 
-  const removeImage = () => {
-    setUploadedImage(null);
-    setImagePreview(null);
+  const removeReference = () => {
+    setReferenceFile(null);
+    setReferencePreview(null);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    if (!user) {
+      setIsSubmitting(true);
+      try {
+        await savePendingQuote(formData, referenceFile);
+        navigate(`/login?returnUrl=${encodeURIComponent('/quote?resume=1')}`);
+      } catch {
+        setError('Could not save your draft. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+
+    try {
+      const fd = new FormData();
+      fd.append('name', formData.name.trim());
+      fd.append('email', formData.email.trim());
+      fd.append('phone', formData.phone.trim());
+      fd.append('company', formData.company.trim());
+      fd.append('description', formData.description.trim());
+      fd.append('quantity', formData.quantity.trim());
+      fd.append('timeline', formData.timeline.trim());
+      fd.append('specialInstructions', formData.specialInstructions.trim());
+      if (referenceFile) {
+        fd.append('reference', referenceFile);
+      }
+
+      await quoteRequestsAPI.create(fd);
+      clearPendingQuote();
+      setIsSubmitted(true);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : null;
+      setError(message || (err instanceof Error ? err.message : 'Could not submit quote request'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen bg-surface py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl shadow-medium p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-8 h-8 text-green-600" />
+          <div className="bg-white rounded-3xl shadow-card p-8 text-center">
+            <div className="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-8 h-8 text-secondary-700" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4 font-sans">Quote Request Submitted!</h1>
-            <p className="text-lg text-gray-600 mb-8">
-              Thank you for your quote request. Our team will review your project details and get back to you within 24 hours with a detailed quote.
+            <h1 className="text-3xl font-bold text-primary-900 mb-4 font-display">Estimate request sent</h1>
+            <p className="text-lg text-primary-700 mb-8">
+              Thank you. Our team will review your project and respond with a cost estimate — typically within 24 hours.
             </p>
-            <div className="bg-gray-50 rounded-2xl p-6 mb-8">
-              <h3 className="font-semibold text-gray-900 mb-4">What happens next?</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-                <div className="flex items-start">
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span className="text-sm font-bold text-primary-600">1</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Review</h4>
-                    <p className="text-gray-600 text-sm">We'll analyze your design and requirements</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span className="text-sm font-bold text-primary-600">2</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Quote</h4>
-                    <p className="text-gray-600 text-sm">You'll receive a detailed price breakdown</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <span className="text-sm font-bold text-primary-600">3</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Production</h4>
-                    <p className="text-gray-600 text-sm">Upon approval, we'll begin production</p>
-                  </div>
-                </div>
-              </div>
-            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/my-activity?tab=quotes" className="btn-primary text-center">
+                View in My activity
+              </Link>
               <button
-                onClick={() => window.location.href = '/'}
-                className="btn-primary"
-              >
-                Back to Home
-              </button>
-              <button
+                type="button"
                 onClick={() => {
                   setIsSubmitted(false);
                   setFormData({
-                    name: '',
-                    email: '',
+                    name: user?.name || '',
+                    email: user?.email || '',
                     phone: '',
                     company: '',
                     description: '',
                     quantity: '',
                     timeline: '',
-                    specialInstructions: ''
+                    specialInstructions: '',
                   });
-                  setUploadedImage(null);
-                  setImagePreview(null);
+                  setReferenceFile(null);
+                  setReferencePreview(null);
                 }}
                 className="btn-outline"
               >
-                Request Another Quote
+                Request another estimate
               </button>
             </div>
           </div>
@@ -132,219 +184,224 @@ const Quote = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-surface py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4 font-sans">Custom Quote Request</h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Upload your logo or design and let us know how many pieces you need. We'll provide you with a detailed quote within 24 hours.
+        <div className="text-center mb-10">
+          <p className="text-sm font-semibold uppercase tracking-wide text-secondary-700 mb-2">Projects & bulk orders</p>
+          <h1 className="text-4xl font-bold text-primary-900 mb-4 font-display">Request a project estimate</h1>
+          <p className="text-lg text-primary-700 max-w-3xl mx-auto">
+            Describe your scope — uniforms, quantities, timelines, and budgets. We&apos;ll reply with a tailored cost
+            estimate for the job. This is <strong>not</strong> the same as ordering a digitized embroidery file from a logo
+            alone (that has a fixed origination fee on{' '}
+            <Link to="/logo-embroidery" className="text-secondary-800 font-semibold underline-offset-2 hover:underline">
+              logo embroidery
+            </Link>
+            ).
+          </p>
+        </div>
+
+        {draftNotice && (
+          <div className="mb-8 rounded-2xl border border-secondary-200 bg-secondary-50/90 px-4 py-3 text-sm text-primary-800 text-center">
+            {draftNotice}
+          </div>
+        )}
+
+        <div className="mb-10 rounded-2xl border border-primary-200 bg-white p-6 text-left shadow-card">
+          <p className="text-sm font-semibold text-primary-900 mb-1">Only need your PNG/JPEG turned into an embroidery file?</p>
+          <p className="text-primary-700 text-sm md:text-base">
+            Use{' '}
+            <Link to="/logo-embroidery" className="font-semibold text-secondary-800 underline-offset-2 hover:underline">
+              Embroidery from your logo
+            </Link>{' '}
+            — origination <strong>KES {LOGO_ORIGINATION_KES.toLocaleString()}</strong> per design (incl. VAT).
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Contact Information */}
-          <div className="bg-white rounded-3xl shadow-medium p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 font-sans">Contact Information</h2>
+          <div className="bg-white rounded-3xl shadow-card p-8">
+            <h2 className="text-2xl font-bold text-primary-900 mb-6 font-display">Contact</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name *
-                </label>
+                <label className="block text-sm font-medium text-primary-800 mb-2">Full name *</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="John Doe"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
-                </label>
+                <label className="block text-sm font-medium text-primary-800 mb-2">Email *</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="john@example.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number *
-                </label>
+                <label className="block text-sm font-medium text-primary-800 mb-2">Phone *</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="+254 700 000 000"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Name
-                </label>
+                <label className="block text-sm font-medium text-primary-800 mb-2">Company (optional)</label>
                 <input
                   type="text"
                   name="company"
                   value={formData.company}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Your Company Ltd"
                 />
               </div>
             </div>
           </div>
 
-          {/* Design Upload */}
-          <div className="bg-white rounded-3xl shadow-medium p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 font-sans">Design Upload</h2>
-            
+          <div className="bg-white rounded-3xl shadow-card p-8">
+            <h2 className="text-2xl font-bold text-primary-900 mb-6 font-display">Project details</h2>
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload Your Logo or Design *
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-primary-400 transition-colors">
-                {imagePreview ? (
-                  <div className="relative">
-                    <img
-                      src={imagePreview}
-                      alt="Uploaded design"
-                      className="mx-auto max-h-64 rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-gray-500 text-sm">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      required
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <label
-                      htmlFor="image-upload"
-                      className="mt-4 btn-primary cursor-pointer inline-flex"
-                    >
-                      Choose File
-                    </label>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Project Description *
-              </label>
+              <label className="block text-sm font-medium text-primary-800 mb-2">Describe what you need *</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
                 required
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Describe your embroidery project, colors, placement, etc."
+                rows={6}
+                className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g. 200 polos with left-chest logo, school uniforms by size, event merch mix, delivery to Mombasa…"
               />
             </div>
-          </div>
 
-          {/* Project Details */}
-          <div className="bg-white rounded-3xl shadow-medium p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 font-sans">Project Details</h2>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-primary-800 mb-2">Reference file (optional)</label>
+              <p className="text-sm text-primary-600 mb-3">
+                Attach a mock-up, brief, or image for context — not required. For a standalone logo digitizing order, use{' '}
+                <Link to="/logo-embroidery" className="font-medium text-secondary-800 underline-offset-2 hover:underline">
+                  logo embroidery
+                </Link>
+                .
+              </p>
+              <div className="border-2 border-dashed border-primary-200 rounded-2xl p-6 text-center hover:border-primary-400 transition-colors">
+                {referencePreview ? (
+                  <div className="relative">
+                    <img src={referencePreview} alt="Reference" className="mx-auto max-h-48 rounded-lg" />
+                    <button
+                      type="button"
+                      onClick={removeReference}
+                      className="absolute top-2 right-2 bg-accent-600 text-white rounded-full p-1 hover:bg-accent-700"
+                      aria-label="Remove file"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : referenceFile ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-primary-800 text-sm">{referenceFile.name}</span>
+                    <button type="button" onClick={removeReference} className="text-accent-600 text-sm font-medium">
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <Upload className="w-10 h-10 text-primary-400 mx-auto mb-3" />
+                    <input
+                      type="file"
+                      accept="image/*,.pdf,application/pdf"
+                      onChange={handleReferenceUpload}
+                      className="hidden"
+                      id="reference-upload"
+                    />
+                    <label htmlFor="reference-upload" className="btn-outline cursor-pointer inline-flex text-sm">
+                      Attach file
+                    </label>
+                    <p className="text-primary-600 text-xs mt-2">Images or PDF</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Pieces *
-                </label>
+                <label className="block text-sm font-medium text-primary-800 mb-2">Quantity (if known)</label>
                 <input
                   type="number"
                   name="quantity"
                   value={formData.quantity}
                   onChange={handleInputChange}
-                  required
                   min="1"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="50"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="e.g. 200"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Timeline *
-                </label>
+                <label className="block text-sm font-medium text-primary-800 mb-2">Timeline *</label>
                 <select
                   name="timeline"
                   value={formData.timeline}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <option value="">Select timeline</option>
-                  <option value="urgent">Urgent (1-3 days)</option>
-                  <option value="standard">Standard (1-2 weeks)</option>
-                  <option value="flexible">Flexible (2-4 weeks)</option>
+                  <option value="">Select</option>
+                  <option value="urgent">Urgent (1–3 days)</option>
+                  <option value="standard">Standard (1–2 weeks)</option>
+                  <option value="flexible">Flexible (2–4 weeks)</option>
                 </select>
               </div>
             </div>
 
             <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Special Instructions
-              </label>
+              <label className="block text-sm font-medium text-primary-800 mb-2">Special instructions (optional)</label>
               <textarea
                 name="specialInstructions"
                 value={formData.specialInstructions}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Any special requirements or preferences..."
+                className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Sizing splits, packaging, invoicing, etc."
               />
             </div>
           </div>
 
-          {/* Submit Button */}
+          {error && (
+            <div className="rounded-2xl border border-accent-200 bg-accent-50 text-accent-900 px-4 py-3 text-sm text-center">
+              {error}
+            </div>
+          )}
+
           <div className="text-center">
             <button
               type="submit"
-              disabled={isSubmitting || !uploadedImage}
+              disabled={isSubmitting}
               className="btn-primary text-lg px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center"
             >
               {isSubmitting ? (
-                'Submitting...'
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin shrink-0" />
+                  Submitting…
+                </>
               ) : (
                 <>
-                  Submit Quote Request
-                  <ArrowRight className="w-5 h-5 ml-2 flex-shrink-0" />
+                  Submit estimate request
+                  <ArrowRight className="w-5 h-5 ml-2 shrink-0" />
                 </>
               )}
             </button>
-            <p className="text-gray-500 text-sm mt-4">
-              We'll respond within 24 hours with your detailed quote
-            </p>
+            <p className="text-primary-600 text-sm mt-4">We typically respond within 24 hours with pricing guidance.</p>
           </div>
         </form>
       </div>

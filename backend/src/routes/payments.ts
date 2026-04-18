@@ -1,62 +1,75 @@
 import express from 'express';
+import crypto from 'crypto';
 import { authMiddleware } from '../middleware/auth';
 import Order from '../models/Order';
 
 const router = express.Router();
 
-// Initialize Paystack payment
+const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY || 'KES';
+
+// Initialize Paystack payment (amount is taken from the order record — do not trust client totals)
 router.post('/initiate', authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const { orderId, email, amount } = req.body;
+    const { orderId, email } = req.body;
 
-    if (!orderId || !email || !amount) {
-      return res.status(400).json({ message: 'Order ID, email, and amount are required' });
+    if (!orderId || !email) {
+      return res.status(400).json({ message: 'Order ID and customer email are required' });
     }
 
-    // Verify order belongs to user
     const order = await Order.findOne({ _id: orderId, userId: req.user.userId });
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Paystack initialization
+    if (order.paymentStatus === 'paid') {
+      return res.status(400).json({ message: 'Order is already paid' });
+    }
+
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecretKey) {
       return res.status(500).json({ message: 'Paystack not configured' });
     }
 
+    // Smallest currency unit (KES: 2 decimal places → multiply by 100)
+    const amountMinor = Math.round(order.total * 100);
+    if (amountMinor < 100) {
+      return res.status(400).json({ message: 'Order total is too small to charge' });
+    }
+
+    const reference = `SG-${order.orderNumber}-${Date.now()}`;
+
     const paystackData = {
       email,
-      amount: amount * 100, // Paystack expects amount in kobo (cents)
-      reference: `SG-${order.orderNumber}-${Date.now()}`,
-      callback_url: `${process.env.FRONTEND_URL}/payment/verify`,
+      amount: amountMinor,
+      currency: PAYSTACK_CURRENCY,
+      reference,
+      callback_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/verify`,
       metadata: {
-        orderId: order._id,
-        userId: req.user.userId,
+        orderId: String(order._id),
+        userId: String(req.user.userId),
+        orderNumber: order.orderNumber,
       },
     };
 
-    // Make request to Paystack
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${paystackSecretKey}`,
+        Authorization: `Bearer ${paystackSecretKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(paystackData),
     });
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as { status: boolean; message?: string; data?: { authorization_url: string; reference: string } };
 
-    if (!data.status) {
+    if (!data.status || !data.data) {
       return res.status(400).json({ message: 'Payment initialization failed', error: data.message });
     }
 
-    // Update order with payment reference
     order.paymentId = data.data.reference;
     await order.save();
 
@@ -100,11 +113,11 @@ router.post('/verify', async (req, res) => {
     }
 
     const paymentData = data.data;
+    const meta = paymentData.metadata || {};
+    const orderId = meta.orderId ?? meta.order_id;
 
-    // Update order status if payment was successful
-    if (paymentData.status === 'success') {
-      const orderId = paymentData.metadata.orderId;
-      await Order.findByIdAndUpdate(orderId, {
+    if (paymentData.status === 'success' && orderId) {
+      await Order.findByIdAndUpdate(String(orderId), {
         paymentStatus: 'paid',
         status: 'processing',
       });
@@ -113,8 +126,9 @@ router.post('/verify', async (req, res) => {
     res.json({
       message: 'Payment verified successfully',
       status: paymentData.status,
-      amount: paymentData.amount / 100, // Convert back to main currency
+      amount: paymentData.amount / 100,
       paidAt: paymentData.paid_at,
+      orderId: orderId ? String(orderId) : undefined,
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -131,8 +145,8 @@ router.post('/webhook', async (req, res) => {
     const secret = process.env.PAYSTACK_WEBHOOK_SECRET;
     
     if (secret && hash) {
-      const crypto = require('crypto');
-      const expectedHash = crypto.createHmac('sha512', secret)
+      const expectedHash = crypto
+        .createHmac('sha512', secret)
         .update(JSON.stringify(req.body))
         .digest('hex');
 
@@ -141,28 +155,25 @@ router.post('/webhook', async (req, res) => {
       }
     }
 
-    // Handle different event types
     if (event.event === 'charge.success') {
       const paymentData = event.data;
-      const orderId = paymentData.metadata.orderId;
-
-      // Update order
-      await Order.findByIdAndUpdate(orderId, {
-        paymentStatus: 'paid',
-        status: 'processing',
-      });
-
-      console.log(`Payment successful for order ${orderId}`);
+      const orderId = paymentData.metadata?.orderId ?? paymentData.metadata?.order_id;
+      if (orderId) {
+        await Order.findByIdAndUpdate(String(orderId), {
+          paymentStatus: 'paid',
+          status: 'processing',
+        });
+        console.log(`Payment successful for order ${orderId}`);
+      }
     } else if (event.event === 'charge.failed') {
       const paymentData = event.data;
-      const orderId = paymentData.metadata.orderId;
-
-      // Update order
-      await Order.findByIdAndUpdate(orderId, {
-        paymentStatus: 'failed',
-      });
-
-      console.log(`Payment failed for order ${orderId}`);
+      const orderId = paymentData.metadata?.orderId ?? paymentData.metadata?.order_id;
+      if (orderId) {
+        await Order.findByIdAndUpdate(String(orderId), {
+          paymentStatus: 'failed',
+        });
+        console.log(`Payment failed for order ${orderId}`);
+      }
     }
 
     res.status(200).send('OK');

@@ -1,5 +1,13 @@
 import { useState } from 'react';
+import { LOGO_ORIGINATION_KES } from '../config/pricing';
 import { Upload, Calculator, Scissors, Palette, FileText } from 'lucide-react';
+
+const toolPanelClass =
+  'rounded-3xl bg-white border border-primary-100 shadow-card p-6 sm:p-8';
+const fieldClass =
+  'w-full px-3 py-2.5 border border-primary-200 rounded-2xl bg-white text-primary-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400';
+const dashedZoneClass =
+  'border-2 border-dashed border-primary-200 rounded-2xl p-6 sm:p-8 text-center hover:border-secondary-400/50 transition-colors bg-primary-50/40';
 
 const Tools = () => {
   const [activeTab, setActiveTab] = useState('converter');
@@ -26,32 +34,39 @@ const Tools = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-surface">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-black mb-4">Tools & Resources</h1>
-          <p className="text-xl text-black max-w-3xl mx-auto">
-            Professional tools to help you with your embroidery projects. Convert files, 
+        <div className="text-center mb-10 max-w-3xl mx-auto">
+          <h1 className="text-4xl font-bold text-primary-900 mb-4 font-display">Tools & Resources</h1>
+          <p className="text-lg sm:text-xl text-primary-700">
+            Professional tools to help you with your embroidery projects. Convert files,
             count stitches, and estimate prices instantly.
           </p>
         </div>
 
         {/* Tool Tabs */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-1 inline-flex">
+        <div className="flex justify-center mb-10 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-1">
+          <div
+            className="inline-flex flex-wrap sm:flex-nowrap justify-center gap-2 p-1.5 bg-white rounded-2xl shadow-card border border-primary-100 min-w-0"
+            role="tablist"
+            aria-label="Tool selection"
+          >
             {tools.map((tool) => (
               <button
                 key={tool.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tool.id}
                 onClick={() => setActiveTab(tool.id)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md transition-colors ${
+                className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-xl text-sm sm:text-base font-medium whitespace-nowrap transition-all ${
                   activeTab === tool.id
-                    ? 'bg-primary-600 text-white'
-                    : 'text-black hover:text-primary-600'
+                    ? 'bg-primary-600 text-white shadow-card'
+                    : 'text-primary-800 hover:bg-primary-50 border border-transparent'
                 }`}
               >
                 {tool.icon}
-                <span className="font-medium">{tool.name}</span>
+                <span>{tool.name}</span>
               </button>
             ))}
           </div>
@@ -66,7 +81,7 @@ const Tools = () => {
 
         {/* Resources Section */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold text-black mb-8 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-primary-900 mb-8 text-center font-display">
             Downloadable Resources
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -90,17 +105,25 @@ const Tools = () => {
                 size: '1.2 MB',
               },
             ].map((resource, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start space-x-4">
-                  <div className="p-3 bg-yellow-100 rounded-lg">
-                    <FileText className="w-6 h-6 text-yellow-600" />
+              <div
+                key={index}
+                className="bg-white rounded-2xl border border-primary-100 shadow-card p-6 hover:shadow-float transition-all duration-300"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-secondary-100 rounded-xl shrink-0">
+                    <FileText className="w-6 h-6 text-secondary-700" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-2">{resource.title}</h3>
-                    <p className="text-black text-sm mb-3">{resource.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-black">{resource.type} • {resource.size}</span>
-                      <button className="text-primary-600 hover:text-primary-700 font-medium text-sm">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-lg text-primary-900 mb-2">{resource.title}</h3>
+                    <p className="text-primary-700 text-sm mb-3">{resource.description}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs text-primary-600">
+                        {resource.type} • {resource.size}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-primary-600 hover:text-primary-800 font-semibold text-sm"
+                      >
                         Download
                       </button>
                     </div>
@@ -140,45 +163,31 @@ const FileConverter = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8">
-      <h2 className="text-2xl font-bold mb-6">Embroidery File Converter</h2>
-      
+    <div className={toolPanelClass}>
+      <h2 className="text-2xl font-bold text-primary-900 mb-2 font-display">Embroidery File Converter</h2>
+      <p className="text-sm text-primary-700 mb-6">Convert between common machine formats.</p>
+
       <div className="space-y-6">
         {/* File Upload */}
         <div>
-          <label className="block text-sm font-medium text-black mb-2">
-            Upload File
-          </label>
-          <div className="border-2 border-dashed border-black rounded-lg p-6 text-center">
-            <input
-              type="file"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="file-upload"
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="w-12 h-12 text-black mx-auto mb-4" />
-              <p className="text-black">
+          <label className="block text-sm font-medium text-primary-900 mb-2">Upload file</label>
+          <div className={dashedZoneClass}>
+            <input type="file" onChange={handleFileUpload} className="hidden" id="file-upload" />
+            <label htmlFor="file-upload" className="cursor-pointer block">
+              <Upload className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+              <p className="text-primary-900 font-medium">
                 {file ? file.name : 'Click to upload or drag and drop'}
               </p>
-              <p className="text-sm text-black mt-1">
-                DST, EMB, PES, JEF files up to 10MB
-              </p>
+              <p className="text-sm text-primary-600 mt-1">DST, EMB, PES, JEF files up to 10MB</p>
             </label>
           </div>
         </div>
 
         {/* Format Selection */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Source Format
-            </label>
-            <select
-              value={sourceFormat}
-              onChange={(e) => setSourceFormat(e.target.value)}
-              className="w-full px-3 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
+            <label className="block text-sm font-medium text-primary-900 mb-2">Source format</label>
+            <select value={sourceFormat} onChange={(e) => setSourceFormat(e.target.value)} className={fieldClass}>
               <option value="DST">DST</option>
               <option value="EMB">EMB</option>
               <option value="PES">PES</option>
@@ -186,14 +195,8 @@ const FileConverter = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Target Format
-            </label>
-            <select
-              value={targetFormat}
-              onChange={(e) => setTargetFormat(e.target.value)}
-              className="w-full px-3 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
+            <label className="block text-sm font-medium text-primary-900 mb-2">Target format</label>
+            <select value={targetFormat} onChange={(e) => setTargetFormat(e.target.value)} className={fieldClass}>
               <option value="EMB">EMB</option>
               <option value="DST">DST</option>
               <option value="PES">PES</option>
@@ -202,13 +205,13 @@ const FileConverter = () => {
           </div>
         </div>
 
-        {/* Convert Button */}
         <button
+          type="button"
           onClick={handleConvert}
           disabled={!file || isConverting}
-          className="w-full py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary w-full py-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isConverting ? 'Converting...' : 'Convert File'}
+          {isConverting ? 'Converting...' : 'Convert file'}
         </button>
       </div>
     </div>
@@ -243,15 +246,14 @@ const StitchCounter = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8">
-      <h2 className="text-2xl font-bold mb-6">Stitch Counter</h2>
-      
+    <div className={toolPanelClass}>
+      <h2 className="text-2xl font-bold text-primary-900 mb-2 font-display">Stitch counter</h2>
+      <p className="text-sm text-primary-700 mb-6">Upload a design image to estimate stitch count.</p>
+
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-black mb-2">
-            Upload Design Image
-          </label>
-          <div className="border-2 border-dashed border-black rounded-lg p-6 text-center">
+          <label className="block text-sm font-medium text-primary-900 mb-2">Upload design image</label>
+          <div className={dashedZoneClass}>
             <input
               type="file"
               onChange={handleImageUpload}
@@ -259,36 +261,35 @@ const StitchCounter = () => {
               className="hidden"
               id="image-upload"
             />
-            <label htmlFor="image-upload" className="cursor-pointer">
-              <Upload className="w-12 h-12 text-black mx-auto mb-4" />
-              <p className="text-black">
+            <label htmlFor="image-upload" className="cursor-pointer block">
+              <Upload className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+              <p className="text-primary-900 font-medium">
                 {image ? image.name : 'Click to upload or drag and drop'}
               </p>
-              <p className="text-sm text-black mt-1">
-                JPG, PNG, GIF files up to 10MB
-              </p>
+              <p className="text-sm text-primary-600 mt-1">JPG, PNG, GIF files up to 10MB</p>
             </label>
           </div>
         </div>
 
         <button
+          type="button"
           onClick={handleCount}
           disabled={!image || isProcessing}
-          className="w-full py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary w-full py-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isProcessing ? 'Processing...' : 'Count Stitches'}
+          {isProcessing ? 'Processing...' : 'Count stitches'}
         </button>
 
         {result && (
-          <div className="bg-primary-50 border border-primary-200 rounded-lg p-6">
-            <h3 className="font-semibold text-lg mb-4">Results</h3>
+          <div className="rounded-2xl border border-primary-200 bg-primary-50/80 p-6 shadow-card">
+            <h3 className="font-semibold text-lg text-primary-900 mb-4 font-display">Results</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Total Stitches</p>
+                <p className="text-sm text-primary-700">Total stitches</p>
                 <p className="text-2xl font-bold text-primary-600">{result.stitches.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Estimated Time</p>
+                <p className="text-sm text-primary-700">Estimated time</p>
                 <p className="text-2xl font-bold text-primary-600">{result.time} min</p>
               </div>
             </div>
@@ -328,7 +329,7 @@ const PriceEstimator = () => {
     setTimeout(() => {
       const priceMap: Record<string, number> = { tshirt: 1500, shirt: 2000, short: 1200, overall: 3500 };
       const basePrice = priceMap[productType];
-      const embroideryPrice = Math.floor(Math.random() * 1000) + 500;
+      const embroideryPrice = LOGO_ORIGINATION_KES;
       const totalPrice = includeProduct ? basePrice + embroideryPrice : embroideryPrice;
       
       setResult({
@@ -342,44 +343,40 @@ const PriceEstimator = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8">
-      <h2 className="text-2xl font-bold mb-6">Price Estimator</h2>
-      
+    <div className={toolPanelClass}>
+      <h2 className="text-2xl font-bold text-primary-900 mb-2 font-display">Price estimator</h2>
+      <p className="mb-6 text-sm text-primary-700">
+        Logo origination (digitizing from your PNG or JPEG) is billed at KES {LOGO_ORIGINATION_KES.toLocaleString()} per design (incl. VAT);
+        add a product below to estimate a sample total.
+      </p>
+
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-black mb-2">
-            Upload Design
-          </label>
-          <div className="border-2 border-dashed border-black rounded-lg p-6 text-center">
+          <label className="block text-sm font-medium text-primary-900 mb-2">Upload logo (PNG or JPEG)</label>
+          <div className={dashedZoneClass}>
             <input
               type="file"
               onChange={handleImageUpload}
-              accept="image/*"
+              accept="image/png,image/jpeg,.png,.jpg,.jpeg"
               className="hidden"
               id="design-upload"
             />
-            <label htmlFor="design-upload" className="cursor-pointer">
-              <Upload className="w-12 h-12 text-black mx-auto mb-4" />
-              <p className="text-black">
+            <label htmlFor="design-upload" className="cursor-pointer block">
+              <Upload className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+              <p className="text-primary-900 font-medium">
                 {image ? image.name : 'Click to upload or drag and drop'}
               </p>
-              <p className="text-sm text-black mt-1">
-                JPG, PNG, GIF files up to 10MB
+              <p className="text-sm text-primary-600 mt-1">
+                PNG or JPEG, up to 10MB — origination KES {LOGO_ORIGINATION_KES.toLocaleString()} (incl. VAT)
               </p>
             </label>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Product Type
-            </label>
-            <select
-              value={productType}
-              onChange={(e) => setProductType(e.target.value)}
-              className="w-full px-3 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
+            <label className="block text-sm font-medium text-primary-900 mb-2">Product type</label>
+            <select value={productType} onChange={(e) => setProductType(e.target.value)} className={fieldClass}>
               <option value="tshirt">T-Shirt</option>
               <option value="shirt">Shirt</option>
               <option value="short">Short</option>
@@ -387,14 +384,8 @@ const PriceEstimator = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
-              Size
-            </label>
-            <select
-              value={size}
-              onChange={(e) => setSize(e.target.value)}
-              className="w-full px-3 py-2 border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
+            <label className="block text-sm font-medium text-primary-900 mb-2">Size</label>
+            <select value={size} onChange={(e) => setSize(e.target.value)} className={fieldClass}>
               <option value="S">Small</option>
               <option value="M">Medium</option>
               <option value="L">Large</option>
@@ -404,58 +395,57 @@ const PriceEstimator = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Color
-          </label>
+          <label className="block text-sm font-medium text-primary-900 mb-2">Color</label>
           <input
             type="text"
             value={color}
             onChange={(e) => setColor(e.target.value)}
             placeholder="Enter color"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className={fieldClass}
           />
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-start gap-3">
           <input
             type="checkbox"
             id="include-product"
             checked={includeProduct}
             onChange={(e) => setIncludeProduct(e.target.checked)}
-            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+            className="mt-1 h-4 w-4 rounded border-primary-300 text-primary-600 focus:ring-primary-500/30"
           />
-          <label htmlFor="include-product" className="ml-2 text-sm text-gray-700">
+          <label htmlFor="include-product" className="text-sm text-primary-800 leading-snug">
             Include product in order (not just embroidery)
           </label>
         </div>
 
         <button
+          type="button"
           onClick={handleCalculate}
           disabled={!image || isCalculating}
-          className="w-full py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary w-full py-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isCalculating ? 'Calculating...' : 'Calculate Price'}
+          {isCalculating ? 'Calculating...' : 'Calculate price'}
         </button>
 
         {result && (
-          <div className="bg-primary-50 border border-primary-200 rounded-lg p-6">
-            <h3 className="font-semibold text-lg mb-4">Price Breakdown</h3>
+          <div className="rounded-2xl border border-primary-200 bg-primary-50/80 p-6 shadow-card">
+            <h3 className="font-semibold text-lg mb-4 text-primary-900 font-display">Price breakdown</h3>
             <div className="space-y-3">
               {includeProduct && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Product Price</span>
-                  <span className="font-semibold">KES {result.productPrice}</span>
+                <div className="flex justify-between gap-4">
+                  <span className="text-primary-700">Product price</span>
+                  <span className="font-semibold text-primary-900">KES {result.productPrice.toLocaleString()}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-gray-600">Embroidery Price</span>
-                <span className="font-semibold">KES {result.embroideryPrice}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-primary-700">Logo origination (digitizing)</span>
+                <span className="font-semibold text-primary-900">KES {result.embroideryPrice.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total Price</span>
-                <span className="text-primary-600">KES {result.totalPrice}</span>
+              <div className="flex justify-between gap-4 text-lg font-bold border-t border-primary-200 pt-3">
+                <span className="text-primary-900">Total</span>
+                <span className="text-primary-600">KES {result.totalPrice.toLocaleString()}</span>
               </div>
-              <div className="text-sm text-gray-600 pt-2 border-t">
+              <div className="text-sm text-primary-700 pt-1">
                 Estimated stitches: {result.stitchCount.toLocaleString()}
               </div>
             </div>

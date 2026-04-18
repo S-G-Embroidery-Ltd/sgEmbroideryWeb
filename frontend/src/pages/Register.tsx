@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.tsx';
+import { isSafeReturnUrl, rememberAuthReturn, takeAuthReturn } from '../utils/pendingForms';
 
 // Google Sign-In script
 declare global {
@@ -22,8 +23,26 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
-  const { register, loginWithGoogle } = useAuth();
+  const { register, loginWithGoogle, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const r = searchParams.get('returnUrl');
+    if (isSafeReturnUrl(r)) rememberAuthReturn(r);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const next = takeAuthReturn();
+    if (next) {
+      navigate(next, { replace: true });
+      return;
+    }
+    if (window.location.pathname === '/register') {
+      navigate('/', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   // Load Google Sign-In script
   useEffect(() => {
@@ -58,7 +77,6 @@ const Register = () => {
 
     try {
       await register(formData.name, formData.email, formData.password);
-      navigate('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -72,7 +90,6 @@ const Register = () => {
 
     try {
       await loginWithGoogle();
-      navigate('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google registration failed');
     } finally {
@@ -84,13 +101,17 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-black">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-primary-900">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm text-black">
+          <p className="mt-2 text-center text-sm text-primary-900">
             Or{' '}
             <Link
-              to="/login"
+              to={
+                isSafeReturnUrl(searchParams.get('returnUrl'))
+                  ? `/login?returnUrl=${encodeURIComponent(searchParams.get('returnUrl')!)}`
+                  : '/login'
+              }
               className="font-medium text-primary-600 hover:text-primary-500"
             >
               sign in to your existing account
@@ -99,18 +120,18 @@ const Register = () => {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+            <div className="bg-accent-50 border border-accent-200 text-accent-700 px-4 py-3 rounded-md">
               {error}
             </div>
           )}
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-black">
+              <label htmlFor="name" className="block text-sm font-medium text-primary-900">
                 Full Name
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-black" />
+                  <User className="h-5 w-5 text-primary-900" />
                 </div>
                 <input
                   id="name"
@@ -119,18 +140,18 @@ const Register = () => {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="appearance-none relative block w-full pl-10 pr-3 py-2 border border-black placeholder-black text-black rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full pl-10 pr-3 py-2 border border-primary-900 placeholder-primary-600 text-primary-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Enter your full name"
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-black">
+              <label htmlFor="email" className="block text-sm font-medium text-primary-900">
                 Email address
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-black" />
+                  <Mail className="h-5 w-5 text-primary-900" />
                 </div>
                 <input
                   id="email"
@@ -140,18 +161,18 @@ const Register = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="appearance-none relative block w-full pl-10 pr-3 py-2 border border-black placeholder-black text-black rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full pl-10 pr-3 py-2 border border-primary-900 placeholder-primary-600 text-primary-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Enter your email"
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-black">
+              <label htmlFor="password" className="block text-sm font-medium text-primary-900">
                 Password
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-black" />
+                  <Lock className="h-5 w-5 text-primary-900" />
                 </div>
                 <input
                   id="password"
@@ -160,7 +181,7 @@ const Register = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-black placeholder-black text-black rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-primary-900 placeholder-primary-600 text-primary-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Create a password"
                 />
                 <button
@@ -169,20 +190,20 @@ const Register = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-black" />
+                    <EyeOff className="h-5 w-5 text-primary-900" />
                   ) : (
-                    <Eye className="h-5 w-5 text-black" />
+                    <Eye className="h-5 w-5 text-primary-900" />
                   )}
                 </button>
               </div>
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-black">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-primary-900">
                 Confirm Password
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-black" />
+                  <Lock className="h-5 w-5 text-primary-900" />
                 </div>
                 <input
                   id="confirmPassword"
@@ -191,7 +212,7 @@ const Register = () => {
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-black placeholder-black text-black rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-primary-900 placeholder-primary-600 text-primary-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Confirm your password"
                 />
                 <button
@@ -200,9 +221,9 @@ const Register = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5 text-black" />
+                    <EyeOff className="h-5 w-5 text-primary-900" />
                   ) : (
-                    <Eye className="h-5 w-5 text-black" />
+                    <Eye className="h-5 w-5 text-primary-900" />
                   )}
                 </button>
               </div>
@@ -215,9 +236,9 @@ const Register = () => {
               name="agree-terms"
               type="checkbox"
               required
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-black rounded"
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-primary-900 rounded"
             />
-            <label htmlFor="agree-terms" className="ml-2 block text-sm text-black">
+            <label htmlFor="agree-terms" className="ml-2 block text-sm text-primary-900">
               I agree to the{' '}
               <Link to="/terms" className="text-primary-600 hover:text-primary-500">
                 Terms of Service
@@ -242,10 +263,10 @@ const Register = () => {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-black" />
+                <div className="w-full border-t border-primary-900" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                <span className="px-2 bg-white text-primary-600">Or continue with</span>
               </div>
             </div>
 
@@ -254,7 +275,7 @@ const Register = () => {
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={isGoogleLoading}
-                className="w-full flex items-center justify-center px-4 py-2 border border-black rounded-md shadow-sm text-sm font-medium text-black bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center px-4 py-2 border border-primary-900 rounded-md shadow-sm text-sm font-medium text-primary-900 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path

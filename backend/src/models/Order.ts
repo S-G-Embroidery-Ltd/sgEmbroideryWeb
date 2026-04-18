@@ -1,11 +1,14 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IOrderItem {
-  product: mongoose.Types.ObjectId;
+  product?: mongoose.Types.ObjectId;
+  /** Line title when cart items are not linked to a Product document */
+  name: string;
   quantity: number;
   price: number;
   size?: string;
   color?: string;
+  image?: string;
   customization?: {
     embroideryFile?: string;
     stitchCount?: number;
@@ -13,9 +16,23 @@ export interface IOrderItem {
   };
 }
 
+export interface IOrderDigitizing {
+  logoRelativePath: string;
+  originalFileName: string;
+  notes?: string;
+  company?: string;
+  wantStitchingQuote?: string;
+  quantity?: string;
+}
+
 export interface IOrder extends Document {
   userId: mongoose.Types.ObjectId;
+  orderType?: 'standard' | 'digitizing';
+  digitizing?: IOrderDigitizing;
   items: IOrderItem[];
+  subtotal: number;
+  tax: number;
+  shippingCost: number;
   total: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentId?: string;
@@ -38,7 +55,12 @@ const orderItemSchema = new Schema<IOrderItem>({
   product: {
     type: Schema.Types.ObjectId,
     ref: 'Product',
+    required: false,
+  },
+  name: {
+    type: String,
     required: true,
+    trim: true,
   },
   quantity: {
     type: Number,
@@ -58,6 +80,10 @@ const orderItemSchema = new Schema<IOrderItem>({
     type: String,
     trim: true,
   },
+  image: {
+    type: String,
+    trim: true,
+  },
   customization: {
     embroideryFile: String,
     stitchCount: Number,
@@ -65,13 +91,49 @@ const orderItemSchema = new Schema<IOrderItem>({
   },
 });
 
+const digitizingSchema = new Schema<IOrderDigitizing>(
+  {
+    logoRelativePath: { type: String, required: true, trim: true },
+    originalFileName: { type: String, required: true, trim: true },
+    notes: { type: String, trim: true },
+    company: { type: String, trim: true },
+    wantStitchingQuote: { type: String, trim: true },
+    quantity: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 const orderSchema = new Schema<IOrder>({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
+  orderType: {
+    type: String,
+    enum: ['standard', 'digitizing'],
+    default: 'standard',
+  },
+  digitizing: {
+    type: digitizingSchema,
+    required: false,
+  },
   items: [orderItemSchema],
+  subtotal: {
+    type: Number,
+    required: true,
+    min: [0, 'Subtotal cannot be negative'],
+  },
+  tax: {
+    type: Number,
+    required: true,
+    min: [0, 'Tax cannot be negative'],
+  },
+  shippingCost: {
+    type: Number,
+    required: true,
+    min: [0, 'Shipping cannot be negative'],
+  },
   total: {
     type: Number,
     required: true,

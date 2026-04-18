@@ -1,8 +1,25 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Order from '../models/Order';
 import { authMiddleware } from '../middleware/auth';
 
 const router = express.Router();
+
+const TAX_RATE = 0.16;
+const FREE_SHIPPING_THRESHOLD = 5000;
+const STANDARD_SHIPPING = 300;
+
+function computeOrderAmounts(items: { price: number; quantity: number }[]) {
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+  const shippingCost = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING;
+  const total = Math.round((subtotal + tax + shippingCost) * 100) / 100;
+  return { subtotal, tax, shippingCost, total };
+}
+
+function isMongoId(value: unknown): value is string {
+  return typeof value === 'string' && mongoose.Types.ObjectId.isValid(value) && value.length === 24;
+}
 
 // Create new order (protected)
 router.post('/', authMiddleware, async (req, res) => {
@@ -17,12 +34,45 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Order must contain at least one item' });
     }
 
-    // Calculate total
-    const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+    if (!shippingAddress?.name || !shippingAddress?.email || !shippingAddress?.phone
+      || !shippingAddress?.address || !shippingAddress?.city
+      || !shippingAddress?.country || !shippingAddress?.postalCode) {
+      return res.status(400).json({ message: 'Complete shipping address is required' });
+    }
+
+    const lineItems: Record<string, unknown>[] = [];
+    for (const item of items as any[]) {
+      const qty = Math.max(1, Math.floor(Number(item.quantity)) || 1);
+      const price = Number(item.price);
+      if (Number.isNaN(price) || price < 0) {
+        return res.status(400).json({ message: 'Invalid item price' });
+      }
+      const name = (item.name || 'Product').toString().trim();
+      const line: Record<string, unknown> = {
+        name,
+        quantity: qty,
+        price,
+        size: item.size,
+        color: item.color,
+        image: item.image,
+      };
+      const productRef = item.product ?? item.id;
+      if (isMongoId(productRef)) {
+        line.product = new mongoose.Types.ObjectId(productRef);
+      }
+      lineItems.push(line);
+    }
+
+    const { subtotal, tax, shippingCost, total } = computeOrderAmounts(
+      lineItems.map((i: any) => ({ price: i.price, quantity: i.quantity }))
+    );
 
     const order = new Order({
       userId: req.user.userId,
-      items,
+      items: lineItems,
+      subtotal,
+      tax,
+      shippingCost,
       total,
       shippingAddress,
     });

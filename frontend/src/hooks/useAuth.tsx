@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext, createContext } from 'react';
 import type { ReactNode } from 'react';
 import { authAPI } from '../services/api';
+import { AUTH_RETURN_KEY } from '../utils/pendingForms';
 
 interface User {
   id: string;
@@ -117,6 +118,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem(AUTH_RETURN_KEY);
     setUser(null);
   };
 
