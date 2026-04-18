@@ -1,0 +1,7 @@
+# Vite output must be published (dist/), not the source tree — otherwise /src/main.tsx
+# is served as a static file → application/octet-stream → module script errors.
+#
+# Leave Netlify "Base directory" *empty* so this runs from the repo root.
+[build]
+  command = "cd frontend && npm install && npm run build"
+  publish = "frontend/dist"
