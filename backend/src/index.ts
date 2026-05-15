@@ -5,10 +5,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
 
 // Import routes
-import authRoutes from './routes/auth';
+import authDevRoutes from './routes/authDev';
 import productRoutes from './routes/products';
 import orderRoutes from './routes/orders';
 import userRoutes from './routes/user';
@@ -56,7 +55,7 @@ app.use('/uploads', express.static(uploadsRoot));
 
 // Routes
 app.get('/api/checkout-info', getCheckoutInfo);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authDevRoutes); // Using development auth routes
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/user', userRoutes);
@@ -82,17 +81,18 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sg-embroidery')
-  .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  });
+// Start server without MongoDB connection
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🗄️  Using in-memory database for development`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔐 Auth endpoints available at /api/auth`);
+  console.log(`📝 Available endpoints:`);
+  console.log(`   POST /api/auth/register - Register new user`);
+  console.log(`   POST /api/auth/login - Login with email/password`);
+  console.log(`   POST /api/auth/google - Google OAuth login`);
+  console.log(`   GET  /api/auth/me - Get current user (protected)`);
+  console.log(`   POST /api/auth/test-user - Create test user (dev only)`);
+});
 
 export default app;

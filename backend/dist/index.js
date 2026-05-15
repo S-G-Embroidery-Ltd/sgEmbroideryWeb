@@ -74,17 +74,48 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
-// Connect to MongoDB
-mongoose_1.default.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sg-embroidery')
-    .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-    });
-})
-    .catch((error) => {
-    console.error('MongoDB connection error:', error);
+const LOCAL_MONGO = 'mongodb://localhost:27017/sg-embroidery';
+function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+}
+async function connectMongoWithRetries() {
+    const uri = process.env.MONGODB_URI?.trim();
+    if (process.env.RENDER && !uri) {
+        console.error('[startup] MONGODB_URI is not set. Add it under Render → Environment → MONGODB_URI (your Atlas connection string).');
+        process.exit(1);
+    }
+    const connectionString = uri || LOCAL_MONGO;
+    const opts = {
+        serverSelectionTimeoutMS: 12000,
+    };
+    const maxAttempts = Number(process.env.MONGO_CONNECT_RETRIES) || 5;
+    let lastErr;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            await mongoose_1.default.connect(connectionString, opts);
+            console.log(`✅ Connected to MongoDB (attempt ${attempt}/${maxAttempts})`);
+            return;
+        }
+        catch (err) {
+            lastErr = err;
+            console.error(`[startup] MongoDB connection attempt ${attempt}/${maxAttempts} failed:`, err);
+            if (attempt < maxAttempts) {
+                const delay = Math.min(2000 * attempt, 10000);
+                console.error(`[startup] Retrying in ${delay}ms… (Atlas: allow 0.0.0.0/0 under Network Access, or confirm MONGODB_URI user/password and URL-encoded password)`);
+                await sleep(delay);
+            }
+        }
+    }
+    console.error('[startup] Could not connect to MongoDB after retries. Check Atlas Network Access (IP allowlist), Database user/password, and MONGODB_URI on Render.');
+    console.error(lastErr);
     process.exit(1);
+}
+void connectMongoWithRetries().then(() => {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`�️  Using MongoDB for data storage`);
+        console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
 });
 exports.default = app;
 //# sourceMappingURL=index.js.map

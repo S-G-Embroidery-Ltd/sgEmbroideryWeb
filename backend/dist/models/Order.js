@@ -194,7 +194,6 @@ const orderSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 orderSchema.index({ userId: 1, createdAt: -1 });
-orderSchema.index({ orderNumber: 1 });
 orderSchema.index({ mpesaTransactionCode: 1 }, { sparse: true });
 // Generate order number before saving
 orderSchema.pre('save', async function (next) {
