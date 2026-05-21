@@ -1,10 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { ClerkProvider } from '@clerk/clerk-react';
 
 // Auth Provider
 import { AuthProvider } from './hooks/useAuth.tsx';
 import { CartProvider } from './hooks/useCart.tsx';
+import { clerkPublishableKey } from './clerk';
 
 // Layout Components
 import Header from './components/common/Header';
@@ -26,6 +28,10 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import PaymentVerify from './pages/PaymentVerify';
 import Profile from './pages/Profile';
+import Orders from './pages/Orders';
+import SavedItems from './pages/SavedItems';
+import PaymentMethods from './pages/PaymentMethods';
+import Settings from './pages/Settings';
 import OrderTracking from './pages/OrderTracking';
 import Branding from './pages/Branding';
 import TextileSolutions from './pages/TextileSolutions';
@@ -35,6 +41,10 @@ import Contact from './pages/Contact';
 import Stories from './pages/Stories';
 import LogoEmbroidery from './pages/LogoEmbroidery';
 import Careers from './pages/Careers';
+import Projects from './pages/Projects';
+import Volunteer from './pages/Volunteer';
+import AnzishaPrize2026 from './pages/AnzishaPrize2026';
+import TonyElumeluFoundation2025 from './pages/TonyElumeluFoundation2025';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -48,14 +58,15 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CartProvider>
-          <Router>
-            <ScrollToTop />
-            <div className="min-h-screen bg-white flex flex-col">
-              <Header />
-              <main className="flex-1">
+    <ClerkProvider publishableKey={clerkPublishableKey}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <CartProvider>
+            <Router>
+              <ScrollToTop />
+              <div className="min-h-screen bg-white flex flex-col">
+                <Header />
+                <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/shop" element={<Shop />} />
@@ -70,6 +81,10 @@ function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/stories" element={<Stories />} />
                   <Route path="/careers" element={<Careers />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/volunteer" element={<Volunteer />} />
+                  <Route path="/anzisha-prize-2026" element={<AnzishaPrize2026 />} />
+                  <Route path="/tony-elumelu-foundation-2025" element={<TonyElumeluFoundation2025 />} />
                   <Route path="/quote" element={<Quote />} />
                   <Route path="/logo-embroidery" element={<LogoEmbroidery />} />
                   <Route path="/orders/:id" element={<OrderTracking />} />
@@ -81,12 +96,16 @@ function App() {
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/payment/verify" element={<PaymentVerify />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/saved-items" element={<SavedItems />} />
+                  <Route path="/payment-methods" element={<PaymentMethods />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Routes>
               </main>
               <Footer />
               {/* WhatsApp Floating Button */}
               <a
-                href="https://wa.me/254700000000" // Replace with actual WhatsApp number
+                href="https://wa.me/254710422557"
                 className="fixed bottom-6 right-6 bg-secondary-500 text-primary-900 p-4 rounded-full shadow-lg hover:bg-secondary-600 transition-colors z-50"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -101,6 +120,7 @@ function App() {
       </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
+    </ClerkProvider>
   );
 }
 

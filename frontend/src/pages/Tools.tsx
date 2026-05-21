@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { LOGO_ORIGINATION_KES } from '../config/pricing';
-import { Upload, Calculator, Scissors, Palette, FileText } from 'lucide-react';
+import { Upload, Calculator, Scissors, Palette } from 'lucide-react';
 
 const toolPanelClass =
   'rounded-3xl bg-white border border-primary-100 shadow-card p-6 sm:p-8';
@@ -38,10 +39,13 @@ const Tools = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         {/* Header */}
         <div className="text-center mb-10 max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold text-primary-900 mb-4 font-display">Tools & Resources</h1>
+          <h1 className="text-4xl font-bold text-primary-900 mb-4 font-display">Tools</h1>
           <p className="text-lg sm:text-xl text-primary-700">
             Professional tools to help you with your embroidery projects. Convert files,
             count stitches, and estimate prices instantly.
+          </p>
+          <p className="text-sm text-primary-600 mt-2">
+            Looking for downloadable resources? Check out our <Link to="/shop" className="text-secondary-700 hover:text-secondary-800 font-semibold">Shop</Link> section for guides, templates, and more.
           </p>
         </div>
 
@@ -79,61 +83,7 @@ const Tools = () => {
           {activeTab === 'price-estimator' && <PriceEstimator />}
         </div>
 
-        {/* Resources Section */}
-        <div className="mt-16">
-          <h2 className="text-2xl sm:text-3xl font-bold text-primary-900 mb-8 text-center font-display">
-            Downloadable Resources
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                title: 'Embroidery Guide',
-                description: 'Complete guide to getting started with embroidery',
-                type: 'PDF',
-                size: '2.5 MB',
-              },
-              {
-                title: 'Design Templates',
-                description: '50+ professional embroidery design templates',
-                type: 'ZIP',
-                size: '15 MB',
-              },
-              {
-                title: 'Color Charts',
-                description: 'Thread color compatibility charts',
-                type: 'PDF',
-                size: '1.2 MB',
-              },
-            ].map((resource, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl border border-primary-100 shadow-card p-6 hover:shadow-float transition-all duration-300"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-secondary-100 rounded-xl shrink-0">
-                    <FileText className="w-6 h-6 text-secondary-700" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-primary-900 mb-2">{resource.title}</h3>
-                    <p className="text-primary-700 text-sm mb-3">{resource.description}</p>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs text-primary-600">
-                        {resource.type} • {resource.size}
-                      </span>
-                      <button
-                        type="button"
-                        className="text-primary-600 hover:text-primary-800 font-semibold text-sm"
-                      >
-                        Download
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

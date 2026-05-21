@@ -110,18 +110,38 @@ export async function emailNewQuoteRequest(payload: {
   company?: string;
   description: string;
   quantity?: string;
-  timeline?: string;
+  workSubmissionDate?: string;
+  brandingTypes?: string[];
   specialInstructions?: string;
   referenceFile?: string;
 }): Promise<void> {
+  const brandingTypesText = payload.brandingTypes?.join(', ') || '—';
   await notifyBusiness(
     `New project quote — ${payload.email}`,
-    `From: ${payload.name} <${payload.email}>\nPhone: ${payload.phone}\nCompany: ${payload.company || '—'}\n\nDescription:\n${payload.description}\n\nQty: ${payload.quantity || '—'}\nTimeline: ${payload.timeline || '—'}\nNotes: ${payload.specialInstructions || '—'}\nReference file: ${payload.referenceFile || 'none'}`
+    `From: ${payload.name} <${payload.email}>\nPhone: ${payload.phone}\nCompany: ${payload.company || '—'}\n\nDescription:\n${payload.description}\n\nQty: ${payload.quantity || '—'}\nStart Date: ${payload.workSubmissionDate || '—'}\nBranding Types: ${brandingTypesText}\nNotes: ${payload.specialInstructions || '—'}\nReference file: ${payload.referenceFile || 'none'}`
   );
   await sendMailSafe({
     to: payload.email,
     subject: 'We received your project quote request',
     text: `Hi ${payload.name},\n\nThank you for your project quote request. Our team will review it and get back to you soon.\n\nSummary:\n${payload.description.slice(0, 500)}${payload.description.length > 500 ? '…' : ''}`,
+  });
+}
+
+export async function emailNewContactMessage(payload: {
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  await notifyBusiness(
+    `New contact message — ${payload.subject}`,
+    `From: ${payload.name} <${payload.email}>\nPhone: ${payload.phone}\n\nSubject: ${payload.subject}\n\nMessage:\n${payload.message}`
+  );
+  await sendMailSafe({
+    to: payload.email,
+    subject: 'We received your message',
+    text: `Hi ${payload.name},\n\nThank you for contacting us. We've received your message and will get back to you soon.\n\nYour message:\n${payload.message}\n\nWe'll respond within 24 hours.`,
   });
 }
 
@@ -142,5 +162,25 @@ export async function emailNewDigitizingOrder(payload: {
     to: payload.email,
     subject: `Digitizing request received — ${payload.orderNumber}`,
     text: `Hi ${payload.name},\n\nWe received your logo digitizing request (${payload.orderNumber}) and payment where applicable. We will follow up by email with next steps.`,
+  });
+}
+
+export async function emailNewVolunteerApplication(payload: {
+  name: string;
+  email: string;
+  phone: string;
+  volunteerType: string;
+  skills: string;
+  availability: string;
+  message: string;
+}): Promise<void> {
+  await notifyBusiness(
+    `New volunteer application — ${payload.email}`,
+    `From: ${payload.name} <${payload.email}>\nPhone: ${payload.phone}\n\nVolunteer Type: ${payload.volunteerType}\nSkills: ${payload.skills}\nAvailability: ${payload.availability}\n\nMessage:\n${payload.message}`
+  );
+  await sendMailSafe({
+    to: payload.email,
+    subject: 'We received your volunteer application',
+    text: `Hi ${payload.name},\n\nThank you for your interest in volunteering with S&G Embroidery! We've received your application and truly appreciate your willingness to contribute your time and skills.\n\nApplication Details:\nVolunteer Type: ${payload.volunteerType}\nSkills: ${payload.skills}\nAvailability: ${payload.availability}\n\nOur team will review your application and contact you within 3-5 business days to discuss next steps.\n\nWe're excited to potentially work together!\n\nBest regards,\nS&G Embroidery Team`,
   });
 }

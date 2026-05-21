@@ -36,9 +36,10 @@ export type PendingQuotePayload = {
     email: string;
     phone: string;
     company: string;
+    brandingTypes: string[];
     description: string;
     quantity: string;
-    timeline: string;
+    workSubmissionDate: string;
     specialInstructions: string;
   };
   referenceDataUrl?: string;

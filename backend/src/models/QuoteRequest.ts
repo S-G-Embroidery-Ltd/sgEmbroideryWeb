@@ -8,7 +8,8 @@ export interface IQuoteRequest extends Document {
   company?: string;
   description: string;
   quantity?: string;
-  timeline?: string;
+  workSubmissionDate?: string;
+  brandingTypes?: string[];
   specialInstructions?: string;
   referenceFile?: string;
   status: 'submitted' | 'reviewed' | 'closed';
@@ -29,7 +30,8 @@ const quoteRequestSchema = new Schema<IQuoteRequest>(
     company: { type: String, trim: true },
     description: { type: String, required: true, trim: true },
     quantity: { type: String, trim: true },
-    timeline: { type: String, trim: true },
+    workSubmissionDate: { type: String, trim: true },
+    brandingTypes: [{ type: String }],
     specialInstructions: { type: String, trim: true },
     referenceFile: { type: String, trim: true },
     status: {

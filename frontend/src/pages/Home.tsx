@@ -247,18 +247,17 @@ const Home = () => {
               <Award className="w-9 h-9 text-secondary-400" strokeWidth={1.75} />
             </div>
             <div className="flex-1">
-              <p className="text-secondary-300 text-sm font-semibold tracking-wide uppercase mb-2">Our story</p>
-              <h2 className="text-2xl sm:text-3xl font-display font-bold mb-3">Tony Elumelu Foundation 2025</h2>
+              <p className="text-secondary-300 text-sm font-semibold tracking-wide uppercase mb-2">Our achievements</p>
+              <h2 className="text-2xl sm:text-3xl font-display font-bold mb-3">Major Milestones 2025-2026</h2>
               <p className="text-primary-100 leading-relaxed max-w-2xl mb-6">
-                We are proud to have been selected for the Tony Elumelu Foundation programme in 2025 — a milestone that
-                reflects our commitment to building a resilient, innovative embroidery and textile brand for Kenya and
-                beyond.
+                Selected for the Tony Elumelu Foundation 2025 and Anzisha Prize 2026 — recognizing our innovation 
+                and excellence in Kenya's embroidery industry from 3,200+ applicants across 54 African countries.
               </p>
               <Link
-                to="/about#news-updates"
+                to="/about#milestones"
                 className="inline-flex items-center gap-2 text-secondary-300 font-semibold hover:text-secondary-200 transition-colors"
               >
-                Read our milestones
+                View our milestones
                 <ExternalLink className="w-4 h-4" />
               </Link>
             </div>

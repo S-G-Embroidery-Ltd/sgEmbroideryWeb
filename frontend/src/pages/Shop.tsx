@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Heart, ShoppingCart, Star, Plus, Minus, Grid, List, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Star, Plus, Minus, Grid, List, SlidersHorizontal, Loader2, FileText } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 import { productsAPI } from '../services/api';
 
@@ -641,6 +641,70 @@ const Shop = () => {
                 })}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Downloadable Resources Section */}
+        <div className="mt-16 bg-surface rounded-3xl p-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-primary-900 mb-4 font-display">Downloadable Resources</h2>
+            <p className="text-lg text-primary-700 max-w-2xl mx-auto">
+              Professional guides, templates, and charts to help with your embroidery projects
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                title: 'Embroidery Guide',
+                description: 'Complete guide to getting started with embroidery',
+                type: 'PDF',
+                size: '2.5 MB',
+                price: 'KES 500'
+              },
+              {
+                title: 'Design Templates',
+                description: '50+ professional embroidery design templates',
+                type: 'ZIP',
+                size: '15 MB',
+                price: 'KES 1,000'
+              },
+              {
+                title: 'Color Charts',
+                description: 'Thread color compatibility charts',
+                type: 'PDF',
+                size: '1.2 MB',
+                price: 'KES 300'
+              },
+            ].map((resource, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-2xl border border-primary-100 shadow-card p-6 hover:shadow-float transition-all duration-300"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-secondary-100 rounded-xl shrink-0">
+                    <FileText className="w-6 h-6 text-secondary-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-lg text-primary-900 mb-2">{resource.title}</h3>
+                    <p className="text-primary-700 text-sm mb-3">{resource.description}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs text-primary-600">
+                        {resource.type} • {resource.size}
+                      </span>
+                      <span className="text-sm font-bold text-secondary-700">
+                        {resource.price}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="w-full mt-3 bg-secondary-500 text-primary-900 px-4 py-2 rounded-xl hover:bg-secondary-400 transition-colors font-medium text-sm"
+                    >
+                      Purchase & Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

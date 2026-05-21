@@ -34,7 +34,21 @@ const userSchema = new Schema<IUser>({
     required(this: IUser) {
       return !this.googleId;
     },
-    minlength: [6, 'Password must be at least 6 characters long'],
+    minlength: [8, 'Password must be at least 8 characters long'],
+    validate: {
+      validator: function(password: string) {
+        // At least one uppercase letter
+        if (!/[A-Z]/.test(password)) return false;
+        // At least one lowercase letter
+        if (!/[a-z]/.test(password)) return false;
+        // At least one number
+        if (!/\d/.test(password)) return false;
+        // At least one special character
+        if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return false;
+        return true;
+      },
+      message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    },
     select: false,
   },
   googleId: {

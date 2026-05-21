@@ -1,0 +1,39 @@
+# OAuth2 Gmail Setup Instructions
+# Add these variables to your .env.local file
+
+# OAuth2 Configuration (Required for Gmail API)
+CLIENT_ID=your-google-oauth2-client-id
+CLIENT_SECRET=your-google-oauth2-client-secret
+REFRESH_TOKEN=your-google-oauth2-refresh-token
+
+# Email Configuration
+EMAIL=your-gmail-address@gmail.com
+BUSINESS_NOTIFY_EMAIL=sgembroideryltd@gmail.com
+
+# API Server Configuration
+API_PORT=3000
+
+# Gmail OAuth2 Setup Steps:
+# 1. Go to Google Cloud Console: https://console.cloud.google.com/
+# 2. Create a new project or select existing one
+# 3. Enable Gmail API: Go to "APIs & Services" → "Library" → Search "Gmail API" → Enable
+# 4. Create OAuth2 credentials:
+#    - Go to "APIs & Services" → "Credentials" → "Create Credentials" → "OAuth2 Client ID"
+#    - Select "Web application"
+#    - Add authorized redirect URI: https://developers.google.com/oauthplayground
+#    - Download the JSON file to get CLIENT_ID and CLIENT_SECRET
+# 5. Generate Refresh Token:
+#    - Go to OAuth2 Playground: https://developers.google.com/oauthplayground
+#    - Click the gear icon → Check "Use your own OAuth credentials"
+#    - Enter your CLIENT_ID and CLIENT_SECRET
+#    - In Step 1, select "Gmail API v1" → "https://www.googleapis.com/auth/gmail.send"
+#    - Click "Authorize APIs" → Sign in with your Google account
+#    - In Step 2, click "Exchange authorization code for tokens"
+#    - Copy the "refresh_token" value
+
+# Alternative: Use App Password (Simpler but less secure)
+# If you don't want OAuth2 setup, you can use app passwords:
+# 1. Enable 2-factor authentication on your Gmail account
+# 2. Go to: https://myaccount.google.com/apppasswords
+# 3. Generate app password for "Mail"
+# 4. Update emailService.js to use SMTP auth instead of OAuth2

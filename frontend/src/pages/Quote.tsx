@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Upload, X, Check, ArrowRight, Loader2 } from 'lucide-react';
-import { LOGO_ORIGINATION_KES } from '../config/pricing';
+import { Upload, X, Check, ArrowRight, Loader2, Calendar } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { quoteRequestsAPI } from '../services/api';
 import {
   savePendingQuote,
   loadPendingQuote,
@@ -16,14 +14,25 @@ const Quote = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+    brandingTypes: string[];
+    description: string;
+    quantity: string;
+    workSubmissionDate: string;
+    specialInstructions: string;
+  }>({
     name: '',
     email: '',
     phone: '',
     company: '',
+    brandingTypes: [],
     description: '',
     quantity: '',
-    timeline: '',
+    workSubmissionDate: '',
     specialInstructions: '',
   });
 
@@ -38,7 +47,11 @@ const Quote = () => {
     if (searchParams.get('resume') !== '1') return;
     const pending = loadPendingQuote();
     if (pending) {
-      setFormData(pending.formData);
+      setFormData({ 
+    ...pending.formData, 
+    brandingTypes: pending.formData.brandingTypes || [],
+    workSubmissionDate: pending.formData.workSubmissionDate || ''
+  });
       if (pending.referenceDataUrl && pending.referenceName) {
         setReferencePreview(pending.referenceDataUrl);
         dataURLToFile(pending.referenceDataUrl, pending.referenceName).then(setReferenceFile).catch(() => {});
@@ -104,22 +117,38 @@ const Quote = () => {
     setIsSubmitting(true);
 
     try {
-      const fd = new FormData();
-      fd.append('name', formData.name.trim());
-      fd.append('email', formData.email.trim());
-      fd.append('phone', formData.phone.trim());
-      fd.append('company', formData.company.trim());
-      fd.append('description', formData.description.trim());
-      fd.append('quantity', formData.quantity.trim());
-      fd.append('timeline', formData.timeline.trim());
-      fd.append('specialInstructions', formData.specialInstructions.trim());
-      if (referenceFile) {
-        fd.append('reference', referenceFile);
-      }
+      const requestData = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        company: formData.company.trim(),
+        description: formData.description.trim(),
+        quantity: formData.quantity.trim(),
+        workSubmissionDate: formData.workSubmissionDate.trim(),
+        specialInstructions: formData.specialInstructions.trim(),
+        brandingTypes: formData.brandingTypes,
+        referenceFileName: referenceFile ? referenceFile.name : undefined,
+      };
 
-      await quoteRequestsAPI.create(fd);
-      clearPendingQuote();
-      setIsSubmitted(true);
+      console.log('Sending quote request via serverless function:', requestData);
+
+      const response = await fetch('http://localhost:3000/api/quote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Quote request sent successfully:', result);
+        clearPendingQuote();
+        setIsSubmitted(true);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit quote request');
+      }
     } catch (err: unknown) {
       const message =
         err && typeof err === 'object' && 'response' in err
@@ -164,9 +193,10 @@ const Quote = () => {
                     email: user?.email || '',
                     phone: '',
                     company: '',
+                    brandingTypes: [],
                     description: '',
                     quantity: '',
-                    timeline: '',
+                    workSubmissionDate: '',
                     specialInstructions: '',
                   });
                   setReferenceFile(null);
@@ -190,13 +220,7 @@ const Quote = () => {
           <p className="text-sm font-semibold uppercase tracking-wide text-secondary-700 mb-2">Projects & bulk orders</p>
           <h1 className="text-4xl font-bold text-primary-900 mb-4 font-display">Request a project estimate</h1>
           <p className="text-lg text-primary-700 max-w-3xl mx-auto">
-            Describe your scope — uniforms, quantities, timelines, and budgets. We&apos;ll reply with a tailored cost
-            estimate for the job. This is <strong>not</strong> the same as ordering a digitized embroidery file from a logo
-            alone (that has a fixed origination fee on{' '}
-            <Link to="/logo-embroidery" className="text-secondary-800 font-semibold underline-offset-2 hover:underline">
-              logo embroidery
-            </Link>
-            ).
+            Describe your project needs — branding type, quantities, timelines, and any design requirements. We&apos;ll provide a detailed cost estimate for your project.
           </p>
         </div>
 
@@ -206,14 +230,13 @@ const Quote = () => {
           </div>
         )}
 
-        <div className="mb-10 rounded-2xl border border-primary-200 bg-white p-6 text-left shadow-card">
-          <p className="text-sm font-semibold text-primary-900 mb-1">Only need your PNG/JPEG turned into an embroidery file?</p>
-          <p className="text-primary-700 text-sm md:text-base">
-            Use{' '}
-            <Link to="/logo-embroidery" className="font-semibold text-secondary-800 underline-offset-2 hover:underline">
-              Embroidery from your logo
-            </Link>{' '}
-            — origination <strong>KES {LOGO_ORIGINATION_KES.toLocaleString()}</strong> per design (incl. VAT).
+        <div className="mb-10 rounded-2xl border border-secondary-200 bg-secondary-50 p-6 text-left shadow-card">
+          <p className="text-sm font-semibold text-secondary-900 mb-2">Need Help with Your Design?</p>
+          <p className="text-secondary-800 text-sm md:text-base mb-2">
+            <strong>Design service:</strong> Want us to create or improve your logo? We can help for just <strong>KES 1,000</strong> per design.
+          </p>
+          <p className="text-secondary-700 text-sm">
+            We'll work with you to create the perfect design, show you a preview before we start, and make any changes you need. No surprises - just great results!
           </p>
         </div>
 
@@ -273,6 +296,45 @@ const Quote = () => {
 
           <div className="bg-white rounded-3xl shadow-card p-8">
             <h2 className="text-2xl font-bold text-primary-900 mb-6 font-display">Project details</h2>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-primary-800 mb-2">Branding Types *</label>
+              <p className="text-xs text-primary-600 mb-3">Select all branding types you're interested in (choose multiple):</p>
+              <div className="space-y-2">
+                {[
+                  { value: 'embroidery', label: 'Embroidery' },
+                  { value: 'dtf', label: 'DTF Printing' },
+                  { value: 'screen-printing', label: 'Screen Printing' },
+                  { value: 'sublimation', label: 'Sublimation' },
+                  { value: 'mixed', label: 'Not Sure - Need Recommendations' }
+                ].map((type) => (
+                  <label key={type.value} className="flex items-center gap-3 cursor-pointer hover:bg-primary-50 p-2 rounded-lg transition-colors">
+                    <input
+                      type="checkbox"
+                      value={type.value}
+                      checked={formData.brandingTypes.includes(type.value)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({
+                            ...prev,
+                            brandingTypes: [...prev.brandingTypes, type.value]
+                          }));
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            brandingTypes: prev.brandingTypes.filter(t => t !== type.value)
+                          }));
+                        }
+                      }}
+                      className="w-4 h-4 text-secondary-600 border-primary-300 rounded focus:ring-secondary-500 focus:ring-2"
+                    />
+                    <span className="text-primary-800">{type.label}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-primary-600 mt-2">We'll recommend the best options based on your selections and project needs.</p>
+            </div>
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-primary-800 mb-2">Describe what you need *</label>
               <textarea
@@ -289,11 +351,7 @@ const Quote = () => {
             <div className="mb-6">
               <label className="block text-sm font-medium text-primary-800 mb-2">Reference file (optional)</label>
               <p className="text-sm text-primary-600 mb-3">
-                Attach a mock-up, brief, or image for context — not required. For a standalone logo digitizing order, use{' '}
-                <Link to="/logo-embroidery" className="font-medium text-secondary-800 underline-offset-2 hover:underline">
-                  logo embroidery
-                </Link>
-                .
+                Attach a mock-up, brief, or image for context — not required but helps us understand your project better.
               </p>
               <div className="border-2 border-dashed border-primary-200 rounded-2xl p-6 text-center hover:border-primary-400 transition-colors">
                 {referencePreview ? (
@@ -348,20 +406,28 @@ const Quote = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-primary-800 mb-2">Timeline *</label>
-                <select
-                  name="timeline"
-                  value={formData.timeline}
+                <label className="block text-sm font-medium text-primary-800 mb-2">Start Date *</label>
+                <input
+                  type="date"
+                  name="workSubmissionDate"
+                  value={formData.workSubmissionDate}
                   onChange={handleInputChange}
                   required
+                  min={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">Select</option>
-                  <option value="urgent">Urgent (1–3 days)</option>
-                  <option value="standard">Standard (1–2 weeks)</option>
-                  <option value="flexible">Flexible (2–4 weeks)</option>
-                </select>
+                />
+                <p className="text-xs text-primary-600 mt-1">When will you deliver the work/project to us?</p>
               </div>
+            </div>
+
+            <div className="bg-secondary-50 border border-secondary-200 rounded-2xl p-6 mt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-5 h-5 text-secondary-700" />
+                <h3 className="text-lg font-semibold text-secondary-900">Project Timeline</h3>
+              </div>
+              <p className="text-secondary-700">
+                We'll discuss the delivery timeline with you after reviewing your project requirements. This allows us to provide accurate timing based on your specific needs and our current workload.
+              </p>
             </div>
 
             <div className="mt-6">

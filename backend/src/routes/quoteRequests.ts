@@ -39,7 +39,8 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
     const company = (req.body.company || '').toString().trim();
     const description = (req.body.description || '').toString().trim();
     const quantity = (req.body.quantity || '').toString().trim();
-    const timeline = (req.body.timeline || '').toString().trim();
+    const workSubmissionDate = (req.body.workSubmissionDate || '').toString().trim();
+    const brandingTypes = req.body.brandingTypes ? JSON.parse(req.body.brandingTypes) : [];
     const specialInstructions = (req.body.specialInstructions || '').toString().trim();
 
     if (!name || !email || !phone || !description) {
@@ -66,7 +67,8 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
       company: company || undefined,
       description,
       quantity: quantity || undefined,
-      timeline: timeline || undefined,
+      workSubmissionDate: workSubmissionDate || undefined,
+      brandingTypes: brandingTypes.length > 0 ? brandingTypes : undefined,
       specialInstructions: specialInstructions || undefined,
       referenceFile,
       status: 'submitted',
@@ -81,7 +83,8 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
       company: company || undefined,
       description,
       quantity: quantity || undefined,
-      timeline: timeline || undefined,
+      workSubmissionDate: workSubmissionDate || undefined,
+      brandingTypes: brandingTypes.length > 0 ? brandingTypes : undefined,
       specialInstructions: specialInstructions || undefined,
       referenceFile,
     }).catch((e) => console.error('[email] quote:', e));

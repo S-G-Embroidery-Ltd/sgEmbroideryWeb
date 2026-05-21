@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, createContext } from 'react';
 import type { ReactNode } from 'react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import { authAPI } from '../services/api';
 import { AUTH_RETURN_KEY } from '../utils/pendingForms';
 
@@ -35,25 +36,42 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+  const { signOut } = useClerk();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    if (clerkLoaded) {
+      if (clerkUser) {
+        // Transform Clerk user to our User interface
+        const userData: User = {
+          id: clerkUser.id,
+          name: clerkUser.fullName || clerkUser.username || '',
+          email: clerkUser.primaryEmailAddress?.emailAddress || '',
+          avatar: clerkUser.imageUrl,
+          provider: 'email'
+        };
+        setUser(userData);
+      } else {
+        // Check for legacy auth (fallback)
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (token && userData) {
+          try {
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        }
       }
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, []);
+  }, [clerkUser, clerkLoaded]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -132,7 +150,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Use Clerk signOut if available
+    if (clerkUser) {
+      await signOut();
+    }
+    
+    // Clear legacy auth data
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionStorage.removeItem(AUTH_RETURN_KEY);
