@@ -95,6 +95,17 @@ export const ordersAPI = {
       country: string;
       postalCode: string;
     };
+    deliveryInfo?: {
+      zone: string;
+      zoneName: string;
+      town: string;
+      county?: string;
+      baseCost: number;
+      finalCost: number;
+      estimatedDays: number;
+      freeShippingApplied: boolean;
+      estimatedDelivery: string;
+    };
     paymentChannel?: 'paystack' | 'mpesa_manual';
   }) => api.post('/orders', orderData),
   getMyOrders: (params?: { page?: number; limit?: number }) =>
@@ -162,6 +173,29 @@ export const paymentsAPI = {
     api.post('/payments/initiate', data),
   verify: (reference: string) =>
     publicApi.post('/payments/verify', { reference }),
+};
+
+export interface DeliveryAddress {
+  country: string;
+  county?: string;
+  town: string;
+  postalCode?: string;
+}
+
+export interface DeliveryCalculationRequest {
+  address: DeliveryAddress;
+  orderValue: number;
+}
+
+export const deliveryAPI = {
+  getZones: (country?: string) =>
+    api.get('/delivery/zones', { params: country ? { country } : {} }),
+  calculateCost: (data: DeliveryCalculationRequest) =>
+    api.post('/delivery/calculate', data),
+  getTowns: (country?: string) =>
+    api.get('/delivery/towns', { params: country ? { country } : {} }),
+  getTownsByCounty: (county: string, country: string) =>
+    api.get(`/delivery/towns/${county}`, { params: { country } }),
 };
 
 export const digitizingRequestsAPI = {

@@ -51,7 +51,24 @@ const Cart = () => {
                 <div key={item.id} className="bg-white rounded-2xl shadow-medium p-6">
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Product Image */}
-                    <div className="w-full sm:w-24 h-24 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-xl flex-shrink-0"></div>
+                    <div className="w-full sm:w-24 h-24 rounded-xl flex-shrink-0 overflow-hidden">
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to gradient if image fails to load
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-primary-100', 'to-secondary-100');
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary-100 to-secondary-100 flex items-center justify-center">
+                          <span className="text-primary-400 text-xs">No Image</span>
+                        </div>
+                      )}
+                    </div>
                     
                     {/* Product Details */}
                     <div className="flex-1">
@@ -59,7 +76,14 @@ const Cart = () => {
                         <div>
                           <h3 className="font-semibold text-lg text-primary-900">{item.name}</h3>
                           <p className="text-sm text-primary-700">
-                            Color: {item.color} | Size: {item.size}
+                            {item.color && item.size 
+                              ? `Color: ${item.color} | Size: ${item.size}`
+                              : item.color 
+                                ? `Color: ${item.color}`
+                                : item.size
+                                  ? `Size: ${item.size}`
+                                  : 'Digital Product'
+                            }
                           </p>
                         </div>
                         <button

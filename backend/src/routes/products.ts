@@ -233,16 +233,48 @@ router.get('/featured/list', async (_req, res) => {
       });
     }
     
-    const products = await Product.find({ featured: true })
+    // Try to get featured products first
+    let products = await Product.find({ featured: true })
       .sort({ createdAt: -1 })
       .limit(10)
       .maxTimeMS(5000); // 5 second timeout for featured products
     
     console.log('✅ Found', products.length, 'featured products');
     
+    // If we don't have at least 3 featured products, get random products to fill
+    if (products.length < 3) {
+      console.log('🔄 Not enough featured products, getting random products to fill');
+      
+      // Get random products that are in stock
+      const randomProducts = await Product.find({ 
+        inStock: true,
+        _id: { $nin: products.map(p => p._id) } // Exclude already selected products
+      })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .maxTimeMS(5000);
+      
+      // Shuffle and take enough products to reach 3 total
+      const shuffled = randomProducts.sort(() => Math.random() - 0.5);
+      const needed = 3 - products.length;
+      const additionalProducts = shuffled.slice(0, needed);
+      
+      products = [...products, ...additionalProducts];
+      console.log('✅ Added', additionalProducts.length, 'random products, total:', products.length);
+    }
+    
+    // If still no products (empty database), return empty array
+    if (products.length === 0) {
+      console.log('📦 No products in database, returning empty array');
+      products = [];
+    }
+    
+    // Shuffle the final selection to ensure randomness
+    const shuffledProducts = products.sort(() => Math.random() - 0.5);
+    
     res.json({
       success: true,
-      data: products
+      data: shuffledProducts
     });
   } catch (error: any) {
     console.error('❌ Featured products API error:', error);

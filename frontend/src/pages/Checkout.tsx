@@ -4,6 +4,8 @@ import { Loader2, Lock, ArrowLeft } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../contexts/AuthContext';
 import { checkoutInfoAPI, ordersAPI, paymentsAPI } from '../services/api';
+import DeliveryAddressForm from '../components/checkout/DeliveryAddressForm';
+import { type DeliveryAddress } from '../services/api';
 
 const TAX_RATE = 0.16;
 const FREE_SHIPPING_THRESHOLD = 5000;
@@ -20,11 +22,6 @@ const Checkout = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { cartItems, getCartTotal } = useCart();
 
-  const subtotal = getCartTotal();
-  const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
-  const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING;
-  const total = Math.round((subtotal + tax + shipping) * 100) / 100;
-
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -35,6 +32,18 @@ const Checkout = () => {
     postalCode: '',
   });
   const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'mpesa_manual'>('paystack');
+  const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
+    country: 'Kenya',
+    town: '',
+    county: '',
+    postalCode: '',
+  });
+  const [deliveryCalculation, setDeliveryCalculation] = useState<any>(null);
+
+  const subtotal = getCartTotal();
+  const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+  const shipping = deliveryCalculation ? deliveryCalculation.price : (subtotal > FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING);
+  const total = Math.round((subtotal + tax + shipping) * 100) / 100;
   const [mpesaInfo, setMpesaInfo] = useState<MpesaInfo | null>(null);
   const [mpesaStepOrderId, setMpesaStepOrderId] = useState<string | null>(null);
   const [mpesaCode, setMpesaCode] = useState('');
@@ -104,10 +113,21 @@ const Checkout = () => {
           email: form.email.trim(),
           phone: form.phone.trim(),
           address: form.address.trim(),
-          city: form.city.trim(),
-          country: form.country.trim(),
-          postalCode: form.postalCode.trim(),
+          city: deliveryAddress.town.trim(), // Use delivery address town
+          country: deliveryAddress.country.trim(),
+          postalCode: deliveryAddress.postalCode?.trim() || '',
         },
+        deliveryInfo: deliveryCalculation ? {
+          zone: deliveryCalculation.zone.zoneId,
+          zoneName: deliveryCalculation.zone.name,
+          town: deliveryAddress.town,
+          county: deliveryAddress.county || '',
+          baseCost: deliveryCalculation.zone.basePrice,
+          finalCost: deliveryCalculation.price,
+          estimatedDays: deliveryCalculation.zone.estimatedDays,
+          freeShippingApplied: deliveryCalculation.freeShipping,
+          estimatedDelivery: deliveryCalculation.estimatedDelivery,
+        } : undefined,
       });
 
       const order = orderRes.order as { _id: string };
@@ -288,46 +308,60 @@ const Checkout = () => {
                 </label>
               </div>
 
-              <h2 className="text-lg font-semibold text-primary-900 mb-4">Delivery</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-primary-800 mb-1">Full name</label>
-                  <input
-                    required
-                    value={form.name}
-                    onChange={(e) => updateField('name', e.target.value)}
-                    className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary-800 mb-1">Email</label>
-                  <input
-                    required
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => updateField('email', e.target.value)}
-                    className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary-800 mb-1">Phone</label>
-                  <input
-                    required
-                    value={form.phone}
-                    onChange={(e) => updateField('phone', e.target.value)}
-                    className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="+254 ..."
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-primary-800 mb-1">Address</label>
-                  <input
-                    required
-                    value={form.address}
-                    onChange={(e) => updateField('address', e.target.value)}
-                    className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
+              <DeliveryAddressForm
+                onAddressChange={(address) => setDeliveryAddress(address)}
+                onDeliveryCalculation={(calculation) => setDeliveryCalculation(calculation)}
+                orderValue={subtotal}
+                initialAddress={{
+                  country: form.country,
+                  town: form.city,
+                  county: '',
+                  postalCode: form.postalCode,
+                }}
+              />
+
+              <div className="bg-white rounded-2xl shadow-medium p-6 mt-4">
+                <h2 className="text-lg font-semibold text-primary-900 mb-4">Contact Information</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-primary-800 mb-1">Full name</label>
+                    <input
+                      required
+                      value={form.name}
+                      onChange={(e) => updateField('name', e.target.value)}
+                      className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary-800 mb-1">Email</label>
+                    <input
+                      required
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => updateField('email', e.target.value)}
+                      className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary-800 mb-1">Phone</label>
+                    <input
+                      required
+                      value={form.phone}
+                      onChange={(e) => updateField('phone', e.target.value)}
+                      className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="+254 ..."
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-primary-800 mb-1">Street Address</label>
+                    <input
+                      required
+                      value={form.address}
+                      onChange={(e) => updateField('address', e.target.value)}
+                      className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Street address, building, etc."
+                    />
+                  </div>
                 <div>
                   <label className="block text-sm font-medium text-primary-800 mb-1">City</label>
                   <input
@@ -354,6 +388,7 @@ const Checkout = () => {
                     onChange={(e) => updateField('country', e.target.value)}
                     className="w-full px-4 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
+                </div>
                 </div>
               </div>
             </div>

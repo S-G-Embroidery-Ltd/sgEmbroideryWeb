@@ -25,6 +25,18 @@ export interface IOrderDigitizing {
   quantity?: string;
 }
 
+export interface IOrderDeliveryInfo {
+  zone: string;
+  zoneName: string;
+  town: string;
+  county?: string;
+  baseCost: number;
+  finalCost: number;
+  estimatedDays: number;
+  freeShippingApplied: boolean;
+  estimatedDelivery: string;
+}
+
 export interface IOrder extends Document {
   userId: mongoose.Types.ObjectId;
   orderType?: 'standard' | 'digitizing';
@@ -58,6 +70,7 @@ export interface IOrder extends Document {
     country: string;
     postalCode: string;
   };
+  deliveryInfo?: IOrderDeliveryInfo;
   orderNumber: string;
   createdAt: Date;
   updatedAt: Date;
@@ -115,6 +128,21 @@ const digitizingSchema = new Schema<IOrderDigitizing>(
   { _id: false }
 );
 
+const deliveryInfoSchema = new Schema<IOrderDeliveryInfo>(
+  {
+    zone: { type: String, required: true, trim: true },
+    zoneName: { type: String, required: true, trim: true },
+    town: { type: String, required: true, trim: true },
+    county: { type: String, trim: true },
+    baseCost: { type: Number, required: true, min: 0 },
+    finalCost: { type: Number, required: true, min: 0 },
+    estimatedDays: { type: Number, required: true, min: 1 },
+    freeShippingApplied: { type: Boolean, required: true },
+    estimatedDelivery: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
 const orderSchema = new Schema<IOrder>({
   userId: {
     type: Schema.Types.ObjectId,
@@ -131,6 +159,10 @@ const orderSchema = new Schema<IOrder>({
     required: false,
   },
   items: [orderItemSchema],
+  deliveryInfo: {
+    type: deliveryInfoSchema,
+    required: false,
+  },
   subtotal: {
     type: Number,
     required: true,

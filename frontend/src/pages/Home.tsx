@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Star,
@@ -20,8 +21,34 @@ import { whatsappChannelUrl, whatsappChannelHref } from '../config/site';
 import { LOGO_ORIGINATION_KES } from '../config/pricing';
 import { customerLogos } from '../config/customerLogos';
 import CustomerLogoMarquee from '../components/home/CustomerLogoMarquee';
+import { productsAPI } from '../services/api';
+
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  featured?: boolean;
+  inStock?: boolean;
+  category?: string;
+}
 
 const Home = () => {
+  // Fetch featured products
+  const { data: featuredProductsData, isLoading: featuredLoading, error: featuredError } = useQuery({
+    queryKey: ['featured-products-home'],
+    queryFn: async () => {
+      const res = await productsAPI.getFeatured();
+      return res.data;
+    },
+  });
+
+  const featuredProducts = featuredProductsData?.data?.slice(0, 3) || [];
+  
+  // Ensure we have at least 2 products, but prefer 3
+  const displayProducts = featuredProducts.length >= 2 ? featuredProducts.slice(0, 3) : featuredProducts;
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero — blurred photo background + copy (no side panel) */}
@@ -187,47 +214,105 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
-              <div className="h-48 bg-gradient-to-br from-primary-100 to-secondary-100" />
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-primary-900 mb-2">Custom T-Shirts</h3>
-                <p className="text-primary-700 mb-4">Premium quality with custom embroidery</p>
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <span className="text-2xl font-bold text-primary-600">KES 1,500</span>
-                  <Link to="/shop" className="btn-primary text-sm">
-                    Order Now
-                  </Link>
+            {featuredLoading ? (
+              // Loading skeleton
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-2xl shadow-card overflow-hidden">
+                  <div className="h-48 bg-gray-200 animate-pulse" />
+                  <div className="p-6">
+                    <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" />
+                    <div className="h-4 bg-gray-200 rounded animate-pulse mb-4" />
+                    <div className="flex justify-between">
+                      <div className="h-6 bg-gray-200 rounded animate-pulse w-20" />
+                      <div className="h-8 bg-gray-200 rounded animate-pulse w-20" />
+                    </div>
+                  </div>
                 </div>
+              ))
+            ) : featuredError ? (
+              // Error state
+              <div className="col-span-full text-center py-8">
+                <p className="text-primary-700">Unable to load featured products</p>
               </div>
-            </div>
+            ) : featuredProducts.length === 0 ? (
+              // Fallback to mockups if no products
+              <>
+                <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
+                  <div className="h-48 bg-gradient-to-br from-primary-100 to-secondary-100" />
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-primary-900 mb-2">Custom T-Shirts</h3>
+                    <p className="text-primary-700 mb-4">Premium quality with custom embroidery</p>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-2xl font-bold text-primary-600">KES 1,500</span>
+                      <Link to="/shop" className="btn-primary text-sm">
+                        Order Now
+                      </Link>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
-              <div className="h-48 bg-gradient-to-br from-secondary-100 to-accent-100" />
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-primary-900 mb-2">Embroidered Caps</h3>
-                <p className="text-primary-700 mb-4">Professional caps with custom logos</p>
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <span className="text-2xl font-bold text-primary-600">KES 800</span>
-                  <Link to="/shop" className="btn-primary text-sm">
-                    Order Now
-                  </Link>
+                <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
+                  <div className="h-48 bg-gradient-to-br from-secondary-100 to-accent-100" />
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-primary-900 mb-2">Embroidered Caps</h3>
+                    <p className="text-primary-700 mb-4">Professional caps with custom logos</p>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-2xl font-bold text-primary-600">KES 800</span>
+                      <Link to="/shop" className="btn-primary text-sm">
+                        Order Now
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
-              <div className="h-48 bg-gradient-to-br from-accent-100 to-primary-100" />
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-primary-900 mb-2">Corporate Uniforms</h3>
-                <p className="text-primary-700 mb-4">Complete uniform solutions</p>
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <span className="text-2xl font-bold text-primary-600">KES 2,200</span>
-                  <Link to="/branding" className="btn-primary text-sm">
-                    Order Now
-                  </Link>
+                <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
+                  <div className="h-48 bg-gradient-to-br from-accent-100 to-primary-100" />
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-primary-900 mb-2">Corporate Uniforms</h3>
+                    <p className="text-primary-700 mb-4">Complete uniform solutions</p>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-2xl font-bold text-primary-600">KES 2,200</span>
+                      <Link to="/branding" className="btn-primary text-sm">
+                        Order Now
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            ) : (
+              // Real products from API
+              displayProducts.map((product: Product) => (
+                <div key={product._id} className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
+                  <div className="h-48 overflow-hidden">
+                    {product.images && product.images.length > 0 ? (
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement?.classList.add('bg-gradient-to-br', 'from-primary-100', 'to-secondary-100');
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary-100 to-secondary-100 flex items-center justify-center">
+                        <span className="text-primary-400 text-sm">No Image</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-primary-900 mb-2">{product.name}</h3>
+                    <p className="text-primary-700 mb-4">{product.description}</p>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-2xl font-bold text-primary-600">KES {product.price.toLocaleString()}</span>
+                      <Link to={`/shop?product=${product._id}`} className="btn-primary text-sm">
+                        Order Now
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="text-center">

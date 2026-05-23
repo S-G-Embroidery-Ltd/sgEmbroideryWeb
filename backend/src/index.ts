@@ -22,6 +22,8 @@ import quoteRequestRoutes from './routes/quoteRequests';
 import contactRoutes from './routes/contact';
 import volunteerRoutes from './routes/volunteer';
 import testRoutes from './routes/test';
+import deliveryRoutes from './routes/delivery';
+import seedRoutes from './routes/seed';
 import { getCheckoutInfo } from './routes/checkoutInfo';
 import { getCorsOrigins } from './utils/corsOrigins';
 
@@ -80,6 +82,8 @@ app.use('/api/quote-requests', quoteRequestRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/volunteer', volunteerRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/seed', seedRoutes);
 
 
 // Health check

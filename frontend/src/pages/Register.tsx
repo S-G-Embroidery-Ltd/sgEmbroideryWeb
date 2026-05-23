@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isSafeReturnUrl, rememberAuthReturn, takeAuthReturn } from '../utils/pendingForms';
 
@@ -18,6 +18,26 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+
+  // Password strength validation
+  const validatePasswordStrength = (password: string) => {
+    const requirements = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+    };
+
+    const passedRequirements = Object.values(requirements).filter(Boolean).length;
+    const strength = passedRequirements === 0 ? 'weak' : 
+                    passedRequirements === 1 ? 'weak' :
+                    passedRequirements === 2 ? 'fair' :
+                    passedRequirements === 3 ? 'good' : 'strong';
+
+    return { requirements, strength };
+  };
+
+  const passwordStrength = validatePasswordStrength(formData.password);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -197,6 +217,78 @@ const Register = () => {
                 </button>
               </div>
             </div>
+
+            {/* Password Strength Indicator */}
+            {formData.password && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-primary-700">Password strength:</span>
+                  <span className={`text-xs font-medium ${
+                    passwordStrength.strength === 'strong' ? 'text-green-600' :
+                    passwordStrength.strength === 'good' ? 'text-blue-600' :
+                    passwordStrength.strength === 'fair' ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {passwordStrength.strength.charAt(0).toUpperCase() + passwordStrength.strength.slice(1)}
+                  </span>
+                </div>
+                
+                {/* Strength Bar */}
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      passwordStrength.strength === 'strong' ? 'bg-green-500 w-full' :
+                      passwordStrength.strength === 'good' ? 'bg-blue-500 w-3/4' :
+                      passwordStrength.strength === 'fair' ? 'bg-yellow-500 w-1/2' : 'bg-red-500 w-1/4'
+                    }`}
+                  />
+                </div>
+
+                {/* Requirements List */}
+                <div className="space-y-1 mt-3">
+                  <div className="flex items-center text-xs">
+                    {passwordStrength.requirements.length ? (
+                      <Check className="h-3 w-3 text-green-500 mr-2" />
+                    ) : (
+                      <X className="h-3 w-3 text-red-500 mr-2" />
+                    )}
+                    <span className={passwordStrength.requirements.length ? 'text-green-700' : 'text-red-700'}>
+                      At least 8 characters
+                    </span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    {passwordStrength.requirements.uppercase ? (
+                      <Check className="h-3 w-3 text-green-500 mr-2" />
+                    ) : (
+                      <X className="h-3 w-3 text-red-500 mr-2" />
+                    )}
+                    <span className={passwordStrength.requirements.uppercase ? 'text-green-700' : 'text-red-700'}>
+                      One uppercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    {passwordStrength.requirements.lowercase ? (
+                      <Check className="h-3 w-3 text-green-500 mr-2" />
+                    ) : (
+                      <X className="h-3 w-3 text-red-500 mr-2" />
+                    )}
+                    <span className={passwordStrength.requirements.lowercase ? 'text-green-700' : 'text-red-700'}>
+                      One lowercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center text-xs">
+                    {passwordStrength.requirements.number ? (
+                      <Check className="h-3 w-3 text-green-500 mr-2" />
+                    ) : (
+                      <X className="h-3 w-3 text-red-500 mr-2" />
+                    )}
+                    <span className={passwordStrength.requirements.number ? 'text-green-700' : 'text-red-700'}>
+                      One number
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-primary-900">
                 Confirm Password
