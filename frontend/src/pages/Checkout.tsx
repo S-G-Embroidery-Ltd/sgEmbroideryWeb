@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, Lock, ArrowLeft } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { checkoutInfoAPI, ordersAPI, paymentsAPI } from '../services/api';
 
 const TAX_RATE = 0.16;

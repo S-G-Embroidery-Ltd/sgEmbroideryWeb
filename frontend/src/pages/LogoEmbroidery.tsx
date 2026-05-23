@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, X, Loader2, ArrowRight } from 'lucide-react';
 import { LOGO_ORIGINATION_KES } from '../config/pricing';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { digitizingRequestsAPI, paymentsAPI } from '../services/api';
 import {
   savePendingLogo,

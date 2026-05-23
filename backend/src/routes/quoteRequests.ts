@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import { optionalAuthMiddleware } from '../middleware/optionalAuth';
 import { authMiddleware } from '../middleware/auth';
 import QuoteRequest from '../models/QuoteRequest';
 import { emailNewQuoteRequest } from '../services/email';
@@ -17,8 +18,13 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, refDir),
   filename: (req, file, cb) => {
     const user = (req as express.Request & { user?: { userId: string } }).user;
-    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${Date.now()}-${user?.userId || 'anon'}-${safe}`);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const name = (req.body.name || 'user').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
+    const originalName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const extension = originalName.split('.').pop();
+    const baseName = originalName.split('.').slice(0, -1).join('.').slice(0, 30);
+    
+    cb(null, `${timestamp}-${name}-${baseName}.${extension}`);
   },
 });
 
@@ -27,11 +33,8 @@ const upload = multer({
   limits: { fileSize: 12 * 1024 * 1024 },
 });
 
-router.post('/', authMiddleware, upload.single('reference'), async (req, res) => {
+router.post('/', optionalAuthMiddleware, upload.array('files', 5), async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
 
     const name = (req.body.name || '').toString().trim();
     const email = (req.body.email || '').toString().trim();
@@ -40,7 +43,7 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
     const description = (req.body.description || '').toString().trim();
     const quantity = (req.body.quantity || '').toString().trim();
     const workSubmissionDate = (req.body.workSubmissionDate || '').toString().trim();
-    const brandingTypes = req.body.brandingTypes ? JSON.parse(req.body.brandingTypes) : [];
+    const brandingTypes = Array.isArray(req.body.brandingTypes) ? req.body.brandingTypes : [];
     const specialInstructions = (req.body.specialInstructions || '').toString().trim();
 
     if (!name || !email || !phone || !description) {
@@ -54,13 +57,15 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
       return res.status(400).json({ message: 'Name, email, phone, and project description are required' });
     }
 
-    let referenceFile: string | undefined;
-    if (req.file) {
-      referenceFile = path.join('quote-references', req.file.filename).replace(/\\/g, '/');
+    let uploadedFiles: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      uploadedFiles = req.files.map(file => 
+        path.join('quote-references', file.filename).replace(/\\/g, '/')
+      );
     }
 
     const doc = new QuoteRequest({
-      userId: req.user.userId,
+      userId: req.user?.userId || undefined,
       name,
       email,
       phone,
@@ -70,7 +75,7 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
       workSubmissionDate: workSubmissionDate || undefined,
       brandingTypes: brandingTypes.length > 0 ? brandingTypes : undefined,
       specialInstructions: specialInstructions || undefined,
-      referenceFile,
+      referenceFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
       status: 'submitted',
     });
 
@@ -86,7 +91,7 @@ router.post('/', authMiddleware, upload.single('reference'), async (req, res) =>
       workSubmissionDate: workSubmissionDate || undefined,
       brandingTypes: brandingTypes.length > 0 ? brandingTypes : undefined,
       specialInstructions: specialInstructions || undefined,
-      referenceFile,
+      referenceFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
     }).catch((e) => console.error('[email] quote:', e));
 
     res.status(201).json({

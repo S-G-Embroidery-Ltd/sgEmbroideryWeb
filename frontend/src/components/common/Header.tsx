@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, Menu, X, User, Package, ChevronDown } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth.tsx';
+import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../hooks/useCart.tsx';
-import { SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react';
+import ProfileDropdown from './ProfileDropdown';
 import sgLogo from '../../assets/sg 2.png';
 
 const navPill = (active: boolean) =>
@@ -203,62 +203,20 @@ const Header = () => {
 
             {user ? (
               <div className="flex items-center gap-2 ml-1 pl-3">
-                <UserButton 
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-9 h-9",
-                      userButtonPopoverCard: "shadow-float border border-primary-100/50",
-                      userButtonPopoverActionButton: "text-sm text-primary-800 rounded-xl hover:bg-surface transition-colors",
-                    }
-                  }}
-                  afterSignOutUrl="/"
-                />
-                <div className="relative group">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-900 hover:text-primary-700 transition-colors max-w-[140px] px-2 py-1.5 rounded-full hover:bg-primary-50"
-                  >
-                    <User className="w-[1.125rem] h-[1.125rem] shrink-0" strokeWidth={2} />
-                    <span className="truncate">{user.name}</span>
-                    <ChevronDown className="w-3.5 h-3.5 opacity-50 shrink-0" strokeWidth={2} />
-                  </button>
-                  <div className="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform group-hover:translate-y-0 translate-y-1">
-                    <div className="w-48 bg-white rounded-2xl shadow-float py-2 px-1 border border-primary-100/50">
-                      <Link
-                        to="/profile"
-                        className="block px-4 py-2.5 text-sm text-primary-800 rounded-xl hover:bg-surface transition-colors"
-                      >
-                        Profile
-                      </Link>
-                      <Link
-                        to="/my-activity"
-                        className="block px-4 py-2.5 text-sm text-primary-800 rounded-xl hover:bg-surface transition-colors"
-                      >
-                        My activity
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2.5 text-sm text-primary-800 rounded-xl hover:bg-surface transition-colors"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <ProfileDropdown />
               </div>
             ) : (
               <div className="flex items-center gap-2 ml-1 pl-3">
-                <SignInButton mode="modal">
+                <Link to="/login">
                   <button className="text-sm font-medium text-primary-800 hover:text-primary-600 px-3 py-2 rounded-full hover:bg-primary-50 transition-colors">
                     Log in
                   </button>
-                </SignInButton>
-                <SignUpButton mode="modal">
+                </Link>
+                <Link to="/register">
                   <button className="text-sm font-bold text-white bg-primary-800 px-4 py-2.5 rounded-full hover:bg-primary-900 transition-colors shadow-sm">
                     Sign up
                   </button>
-                </SignUpButton>
+                </Link>
               </div>
             )}
           </div>
@@ -385,14 +343,15 @@ const Header = () => {
               {user ? (
                 <>
                   <div className="flex items-center gap-2 py-3 px-3 rounded-xl">
-                    <UserButton 
-                      appearance={{
-                        elements: {
-                          avatarBox: "w-8 h-8",
-                        }
-                      }}
-                      afterSignOutUrl="/"
-                    />
+                    {user.avatar ? (
+                      <img 
+                        src={user.avatar} 
+                        alt={user.name} 
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-primary-400" />
+                    )}
                     <span className="text-sm font-medium text-primary-900">{user.name}</span>
                   </div>
                   <Link
@@ -424,22 +383,22 @@ const Header = () => {
                 </>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <SignInButton mode="modal">
+                  <Link to="/login">
                     <button 
                       className="text-center py-3 rounded-2xl text-sm font-medium text-primary-900 bg-surface hover:bg-primary-100 transition-colors w-full"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Log in
                     </button>
-                  </SignInButton>
-                  <SignUpButton mode="modal">
+                  </Link>
+                  <Link to="/register">
                     <button 
                       className="text-center py-3 rounded-2xl text-sm font-bold text-white bg-primary-800 hover:bg-primary-900 transition-colors w-full"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Sign up
                     </button>
-                  </SignUpButton>
+                  </Link>
                 </div>
               )}
             </div>

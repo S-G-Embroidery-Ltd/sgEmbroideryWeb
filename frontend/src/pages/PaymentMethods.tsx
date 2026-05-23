@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Plus, Trash2, Check, AlertCircle, Smartphone } from 'lucide-react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 
 type PaymentMethod = {
   id: string;
@@ -16,7 +16,7 @@ type PaymentMethod = {
 };
 
 const PaymentMethods = () => {
-  const { user, isLoaded } = useUser();
+  const { user, isLoading: isLoaded } = useAuth();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);

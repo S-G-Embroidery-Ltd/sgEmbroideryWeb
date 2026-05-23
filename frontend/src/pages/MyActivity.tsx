@@ -8,7 +8,7 @@ import {
   Image as ImageIcon,
   ArrowRight,
 } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { ordersAPI, quoteRequestsAPI } from '../services/api';
 
 type TabId = 'orders' | 'quotes' | 'logos';

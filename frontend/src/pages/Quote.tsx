@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, X, Check, ArrowRight, Loader2, Calendar } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import {
   savePendingQuote,
   loadPendingQuote,
@@ -36,8 +36,10 @@ const Quote = () => {
     specialInstructions: '',
   });
 
-  const [referenceFile, setReferenceFile] = useState<File | null>(null);
-  const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+  const [referencePreviews, setReferencePreviews] = useState<{file: File, preview: string}[]>([]);
+  const [referenceUrls, setReferenceUrls] = useState<string[]>([]);
+  const [urlInput, setUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +55,14 @@ const Quote = () => {
     workSubmissionDate: pending.formData.workSubmissionDate || ''
   });
       if (pending.referenceDataUrl && pending.referenceName) {
-        setReferencePreview(pending.referenceDataUrl);
-        dataURLToFile(pending.referenceDataUrl, pending.referenceName).then(setReferenceFile).catch(() => {});
+        dataURLToFile(pending.referenceDataUrl, pending.referenceName).then(file => {
+          setReferenceFiles([file]);
+          if (file.type.startsWith('image/')) {
+            setReferencePreviews([{file, preview: pending.referenceDataUrl || ''}]);
+          } else {
+            setReferencePreviews([{file, preview: ''}]);
+          }
+        }).catch(() => {});
       }
       if (pending.referenceOmitted) {
         setDraftNotice('Your reference file was too large to keep in the browser. Please attach it again if needed.');
@@ -76,21 +84,43 @@ const Quote = () => {
   }, [user]);
 
   const handleReferenceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setReferenceFile(file);
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setReferencePreview(ev.target?.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      setReferencePreview(null);
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    
+    // Limit to 5 files
+    const newFiles = files.slice(0, 5);
+    const validFiles = newFiles.filter(file => file.size <= 12 * 1024 * 1024); // 12MB limit
+    
+    if (validFiles.length !== newFiles.length) {
+      setError('Some files were too large (max 12MB per file)');
     }
+    
+    // Create previews for image files
+    validFiles.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const preview = ev.target?.result as string;
+          setReferencePreviews(prev => [...prev, {file, preview}]);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // For non-image files, show a generic preview
+        setReferencePreviews(prev => [...prev, {file, preview: ''}]);
+      }
+    });
+    
+    setReferenceFiles(prev => [...prev, ...validFiles].slice(0, 5));
   };
 
-  const removeReference = () => {
-    setReferenceFile(null);
-    setReferencePreview(null);
+  const removeReference = (index: number) => {
+    setReferenceFiles(prev => prev.filter((_, i) => i !== index));
+    setReferencePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllReferences = () => {
+    setReferenceFiles([]);
+    setReferencePreviews([]);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -104,7 +134,7 @@ const Quote = () => {
     if (!user) {
       setIsSubmitting(true);
       try {
-        await savePendingQuote(formData, referenceFile);
+        await savePendingQuote(formData, referenceFiles[0] || null);
         navigate(`/login?returnUrl=${encodeURIComponent('/quote?resume=1')}`);
       } catch {
         setError('Could not save your draft. Please try again.');
@@ -127,17 +157,31 @@ const Quote = () => {
         workSubmissionDate: formData.workSubmissionDate.trim(),
         specialInstructions: formData.specialInstructions.trim(),
         brandingTypes: formData.brandingTypes,
-        referenceFileName: referenceFile ? referenceFile.name : undefined,
+        referenceFileNames: referenceFiles.map(file => file.name),
       };
 
-      console.log('Sending quote request via serverless function:', requestData);
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name.trim());
+      formDataToSend.append('email', formData.email.trim());
+      formDataToSend.append('phone', formData.phone.trim());
+      formDataToSend.append('company', formData.company.trim());
+      formDataToSend.append('description', formData.description.trim());
+      formDataToSend.append('quantity', formData.quantity.trim());
+      formDataToSend.append('workSubmissionDate', formData.workSubmissionDate.trim());
+      formDataToSend.append('specialInstructions', formData.specialInstructions.trim());
+      formDataToSend.append('brandingTypes', JSON.stringify(formData.brandingTypes));
+      
+      // Add files
+      referenceFiles.forEach(file => {
+        formDataToSend.append('files', file);
+      });
 
-      const response = await fetch('http://localhost:3000/api/quote', {
+      console.log('Sending quote request with files:', { requestData, fileCount: referenceFiles.length });
+
+      const response = await fetch('http://localhost:5000/api/quote-requests', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
+        body: formDataToSend,
       });
 
       if (response.ok) {
@@ -199,8 +243,8 @@ const Quote = () => {
                     workSubmissionDate: '',
                     specialInstructions: '',
                   });
-                  setReferenceFile(null);
-                  setReferencePreview(null);
+                  setReferenceFiles([]);
+                  setReferencePreviews([]);
                 }}
                 className="btn-outline"
               >
@@ -349,44 +393,71 @@ const Quote = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-primary-800 mb-2">Reference file (optional)</label>
+              <label className="block text-sm font-medium text-primary-800 mb-2">Reference files (optional, up to 5)</label>
               <p className="text-sm text-primary-600 mb-3">
-                Attach a mock-up, brief, or image for context — not required but helps us understand your project better.
+                Attach mock-ups, briefs, images, or any files for context — not required but helps us understand your project better.
               </p>
+              
+              {/* Display uploaded files */}
+              {referencePreviews.length > 0 && (
+                <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {referencePreviews.map((item, index) => (
+                    <div key={index} className="relative border border-primary-200 rounded-lg p-3 bg-white">
+                      {item.preview ? (
+                        <img src={item.preview} alt={`Reference ${index + 1}`} className="w-full h-32 object-cover rounded mb-2" />
+                      ) : (
+                        <div className="w-full h-32 bg-surface-muted rounded mb-2 flex items-center justify-center">
+                          <span className="text-primary-400 text-sm">📄 {item.file.type.split('/')[1] || 'File'}</span>
+                        </div>
+                      )}
+                      <p className="text-xs text-primary-700 truncate mb-2">{item.file.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => removeReference(index)}
+                        className="absolute top-2 right-2 bg-accent-600 text-white rounded-full p-1 hover:bg-accent-700"
+                        aria-label="Remove file"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div className="border-2 border-dashed border-primary-200 rounded-2xl p-6 text-center hover:border-primary-400 transition-colors">
-                {referencePreview ? (
-                  <div className="relative">
-                    <img src={referencePreview} alt="Reference" className="mx-auto max-h-48 rounded-lg" />
-                    <button
-                      type="button"
-                      onClick={removeReference}
-                      className="absolute top-2 right-2 bg-accent-600 text-white rounded-full p-1 hover:bg-accent-700"
-                      aria-label="Remove file"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : referenceFile ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-primary-800 text-sm">{referenceFile.name}</span>
-                    <button type="button" onClick={removeReference} className="text-accent-600 text-sm font-medium">
-                      Remove
-                    </button>
-                  </div>
-                ) : (
+                {referenceFiles.length === 0 ? (
                   <div>
                     <Upload className="w-10 h-10 text-primary-400 mx-auto mb-3" />
                     <input
                       type="file"
-                      accept="image/*,.pdf,application/pdf"
+                      accept="*/*"
+                      multiple
                       onChange={handleReferenceUpload}
                       className="hidden"
                       id="reference-upload"
                     />
                     <label htmlFor="reference-upload" className="btn-outline cursor-pointer inline-flex text-sm">
-                      Attach file
+                      Attach files
                     </label>
-                    <p className="text-primary-600 text-xs mt-2">Images or PDF</p>
+                    <p className="text-primary-600 text-xs mt-2">Any file type (max 12MB each, up to 5 files)</p>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="*/*"
+                      multiple
+                      onChange={handleReferenceUpload}
+                      className="hidden"
+                      id="reference-upload-more"
+                    />
+                    <label htmlFor="reference-upload-more" className="btn-outline cursor-pointer inline-flex text-sm mr-2">
+                      Add more files
+                    </label>
+                    <button type="button" onClick={clearAllReferences} className="text-accent-600 text-sm font-medium">
+                      Clear all
+                    </button>
+                    <p className="text-primary-600 text-xs mt-2">{referenceFiles.length}/5 files uploaded</p>
                   </div>
                 )}
               </div>

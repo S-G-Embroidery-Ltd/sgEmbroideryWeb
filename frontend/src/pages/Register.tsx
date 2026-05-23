@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth.tsx';
+import { useAuth } from '../contexts/AuthContext';
 import { isSafeReturnUrl, rememberAuthReturn, takeAuthReturn } from '../utils/pendingForms';
 
 // Google Sign-In script

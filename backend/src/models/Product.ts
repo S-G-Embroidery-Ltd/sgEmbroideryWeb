@@ -4,7 +4,7 @@ export interface IProduct extends Document {
   name: string;
   description: string;
   price: number;
-  category: 'physical' | 'embroidery' | 'downloadable';
+  category: 'physical' | 'embroidery';
   sizes?: string[];
   colors?: string[];
   images: string[];
@@ -36,8 +36,8 @@ const productSchema = new Schema<IProduct>({
     type: String,
     required: [true, 'Product category is required'],
     enum: {
-      values: ['physical', 'embroidery', 'downloadable'],
-      message: 'Category must be physical, embroidery, or downloadable',
+      values: ['physical', 'embroidery'],
+      message: 'Category must be physical or embroidery',
     },
   },
   sizes: [{

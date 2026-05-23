@@ -26,7 +26,7 @@ const Contact = () => {
     try {
       console.log('Sending contact email via serverless function:', formData);
 
-      const response = await fetch('http://localhost:3000/api/contact', {
+      const response = await fetch('http://localhost:5000/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

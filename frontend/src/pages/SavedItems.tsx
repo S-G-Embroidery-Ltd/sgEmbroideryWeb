@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, X, Trash2, ArrowRight } from 'lucide-react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../hooks/useCart';
 
 type SavedItem = {
@@ -15,7 +15,7 @@ type SavedItem = {
 };
 
 const SavedItems = () => {
-  const { user, isLoaded } = useUser();
+  const { user, isLoading: isLoaded } = useAuth();
   const { addToCart } = useCart();
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);

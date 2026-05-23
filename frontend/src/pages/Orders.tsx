@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Calendar, DollarSign, ArrowRight, Filter, Search, X } from 'lucide-react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { ordersAPI } from '../services/api';
 
 type Order = {
@@ -17,7 +17,7 @@ type Order = {
 };
 
 const Orders = () => {
-  const { user, isLoaded } = useUser();
+  const { user, isLoading: isLoaded } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

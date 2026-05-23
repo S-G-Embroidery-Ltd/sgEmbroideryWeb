@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { Bell, Shield, Palette, Globe, HelpCircle, LogOut, Save, Eye, EyeOff, Mail, Smartphone } from 'lucide-react';
 
 type UserSettings = {
@@ -24,8 +24,7 @@ type UserSettings = {
 };
 
 const Settings = () => {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { user, isLoading: isLoaded, logout } = useAuth();
   const [settings, setSettings] = useState<UserSettings>({
     emailNotifications: true,
     pushNotifications: false,
@@ -111,7 +110,7 @@ const Settings = () => {
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    logout();
   };
 
   const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {

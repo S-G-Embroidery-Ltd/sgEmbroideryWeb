@@ -6,9 +6,13 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   googleId?: string;
+  clerkId?: string;
   avatar?: string;
+  provider?: 'email' | 'google' | 'clerk';
   favorites: string[];
   orders: string[];
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -32,7 +36,7 @@ const userSchema = new Schema<IUser>({
   password: {
     type: String,
     required(this: IUser) {
-      return !this.googleId;
+      return !this.googleId && !this.clerkId;
     },
     minlength: [8, 'Password must be at least 8 characters long'],
     validate: {
@@ -55,6 +59,16 @@ const userSchema = new Schema<IUser>({
     type: String,
     sparse: true,
     unique: true,
+  },
+  clerkId: {
+    type: String,
+    sparse: true,
+    unique: true,
+  },
+  provider: {
+    type: String,
+    enum: ['email', 'google', 'clerk'],
+    default: 'email',
     trim: true,
   },
   avatar: {
@@ -69,6 +83,14 @@ const userSchema = new Schema<IUser>({
     type: Schema.Types.ObjectId,
     ref: 'Order',
   }],
+  resetToken: {
+    type: String,
+    select: false,
+  },
+  resetTokenExpiry: {
+    type: Date,
+    select: false,
+  },
 }, {
   timestamps: true,
 });
@@ -92,5 +114,8 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
   if (!pwd) return false;
   return bcrypt.compare(candidatePassword, pwd);
 };
+
+// Index for better query performance (email, googleId, clerkId already have unique indexes)
+userSchema.index({ createdAt: -1 });
 
 export default mongoose.model<IUser>('User', userSchema);

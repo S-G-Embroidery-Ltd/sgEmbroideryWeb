@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Heart, ShoppingCart, Star, Plus, Minus, Grid, List, SlidersHorizontal, Loader2, FileText } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Star, Plus, Minus, Grid, List, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 import { productsAPI } from '../services/api';
 
@@ -152,7 +152,6 @@ const Shop = () => {
     { value: 'all', label: 'All Products', count: data?.pagination?.total ?? 0 },
     { value: 'physical', label: 'Physical', count: 0 },
     { value: 'embroidery', label: 'Embroidery', count: 0 },
-    { value: 'downloadable', label: 'Digital', count: 0 },
   ];
 
   const colors: { value: string; label: string; color: string; light?: boolean }[] = [
@@ -228,24 +227,24 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen bg-surface">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-6">
+          <div className="flex flex-col gap-4 mb-6">
             <div className="min-w-0">
-              <h1 className="text-4xl font-bold text-primary-900 mb-2 font-display">Shop</h1>
-              <p className="text-lg text-primary-700">Browse products from our catalogue</p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-900 mb-1 sm:mb-2 font-display">Shop</h1>
+              <p className="text-sm sm:text-base lg:text-lg text-primary-700">Browse products from our catalogue</p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              <div className="flex items-center bg-white border border-primary-100 rounded-2xl px-4 py-2 shadow-card">
-                <span className="text-sm font-medium text-primary-900">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center bg-white border border-primary-100 rounded-xl px-3 py-1.5 shadow-card">
+                <span className="text-xs sm:text-sm font-medium text-primary-900">
                   {isLoading ? '…' : sortedProducts.length} Products
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`p-2.5 rounded-xl border transition-colors ${viewMode === 'grid' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white border-primary-200 text-primary-800 hover:border-primary-300'}`}
+                  className={`p-2 rounded-lg border transition-colors ${viewMode === 'grid' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white border-primary-200 text-primary-800 hover:border-primary-300'}`}
                   aria-pressed={viewMode === 'grid'}
                 >
                   <Grid className="w-4 h-4" />
@@ -253,7 +252,7 @@ const Shop = () => {
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
-                  className={`p-2.5 rounded-xl border transition-colors ${viewMode === 'list' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white border-primary-200 text-primary-800 hover:border-primary-300'}`}
+                  className={`p-2 rounded-lg border transition-colors ${viewMode === 'list' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white border-primary-200 text-primary-800 hover:border-primary-300'}`}
                   aria-pressed={viewMode === 'list'}
                 >
                   <List className="w-4 h-4" />
@@ -262,43 +261,46 @@ const Shop = () => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="flex flex-col gap-3 mb-6">
             <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400 w-5 h-5 pointer-events-none" />
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-primary-400 w-4 h-4 sm:w-5 sm:h-5 pointer-events-none" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && applySearch()}
                 placeholder="Search products…"
-                className="w-full min-w-0 pl-12 pr-4 py-3.5 sm:py-4 bg-white border border-primary-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 text-primary-900 placeholder-primary-400 text-base sm:text-lg shadow-card"
+                className="w-full min-w-0 pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 bg-white border border-primary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 text-primary-900 placeholder-primary-400 text-sm sm:text-base shadow-card"
               />
             </div>
             <button
               type="button"
               onClick={applySearch}
-              className="shrink-0 px-6 py-3.5 rounded-2xl bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors shadow-card"
+              className="shrink-0 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors shadow-card text-sm sm:text-base"
             >
               Search
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            {categories.map((category) => (
-              <button
-                key={category.value}
-                type="button"
-                onClick={() => setSelectedCategory(category.value)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCategory === category.value
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white border border-primary-200 text-primary-800 hover:border-primary-600 hover:text-primary-600'
-                }`}
-              >
-                {category.label}
-                {category.value === 'all' && typeof category.count === 'number' ? ` (${category.count})` : ''}
-              </button>
-            ))}
+          {/* Mobile Category Pills - Horizontal Scroll */}
+          <div className="mb-6">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide sm:overflow-x-visible sm:pb-0">
+              {categories.map((category) => (
+                <button
+                  key={category.value}
+                  type="button"
+                  onClick={() => setSelectedCategory(category.value)}
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                    selectedCategory === category.value
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-white border border-primary-200 text-primary-800 hover:border-primary-600 hover:text-primary-600'
+                  }`}
+                >
+                  {category.label}
+                  {category.value === 'all' && typeof category.count === 'number' ? ` (${category.count})` : ''}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -311,24 +313,42 @@ const Shop = () => {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Mobile Filter Toggle */}
+          <div className="lg:hidden">
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-primary-200 rounded-xl shadow-card hover:bg-primary-50/80"
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+              <span className="font-medium">{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
+              {activeFiltersCount > 0 && (
+                <span className="bg-primary-600 text-white text-xs px-2 py-1 rounded-full">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Filters Sidebar */}
           <div className={`w-full lg:w-80 flex-shrink-0 min-w-0 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="bg-white rounded-2xl shadow-card border border-primary-100 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-primary-900">Filters</h3>
+            <div className="bg-white rounded-xl lg:rounded-2xl shadow-card border border-primary-100 p-4 lg:p-6">
+              <div className="flex items-center justify-between mb-4 lg:mb-6">
+                <h3 className="text-base lg:text-lg font-semibold text-primary-900">Filters</h3>
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  className="text-xs lg:text-sm text-primary-600 hover:text-primary-700 font-medium"
                 >
                   Clear All
                 </button>
               </div>
 
               {activeFiltersCount > 0 && (
-                <div className="mb-6 p-3 bg-primary-50 rounded-xl">
+                <div className="mb-4 lg:mb-6 p-2 lg:p-3 bg-primary-50 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-primary-900">Active Filters</span>
+                    <span className="text-xs lg:text-sm font-medium text-primary-900">Active Filters</span>
                     <span className="bg-primary-600 text-white text-xs px-2 py-1 rounded-full">
                       {activeFiltersCount}
                     </span>
@@ -336,12 +356,12 @@ const Shop = () => {
                 </div>
               )}
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-primary-900 mb-2">Sort By</label>
+              <div className="mb-4 lg:mb-6">
+                <label className="block text-xs lg:text-sm font-medium text-primary-900 mb-2">Sort By</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2 border border-primary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-primary-200 rounded-lg lg:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
                 >
                   <option value="name">Name (A-Z)</option>
                   <option value="price-low">Price: Low to High</option>
@@ -350,15 +370,15 @@ const Shop = () => {
                 </select>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-primary-900 mb-2">Price Range (KES)</label>
+              <div className="mb-4 lg:mb-6">
+                <label className="block text-xs lg:text-sm font-medium text-primary-900 mb-2">Price Range (KES)</label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number"
                     min={0}
                     value={priceRange.min}
                     onChange={(e) => setPriceRange((p) => ({ ...p, min: Math.max(0, Number(e.target.value) || 0) }))}
-                    className="px-3 py-2 border border-primary-200 rounded-xl"
+                    className="px-3 py-2 border border-primary-200 rounded-lg text-sm"
                     placeholder="Min"
                   />
                   <input
@@ -366,15 +386,15 @@ const Shop = () => {
                     min={0}
                     value={priceRange.max}
                     onChange={(e) => setPriceRange((p) => ({ ...p, max: Math.max(0, Number(e.target.value) || 0) }))}
-                    className="px-3 py-2 border border-primary-200 rounded-xl"
+                    className="px-3 py-2 border border-primary-200 rounded-lg text-sm"
                     placeholder="Max"
                   />
                 </div>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-primary-900 mb-2">Colors</label>
-                <div className="grid grid-cols-5 gap-2">
+              <div className="mb-4 lg:mb-6">
+                <label className="block text-xs lg:text-sm font-medium text-primary-900 mb-2">Colors</label>
+                <div className="grid grid-cols-4 lg:grid-cols-5 gap-2">
                   {colors.map((color) => (
                     <button
                       key={color.value}
@@ -387,7 +407,7 @@ const Shop = () => {
                             : [...prev, color.value]
                         );
                       }}
-                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 flex items-center justify-center shrink-0 transition-shadow ${
+                      className={`w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl border-2 flex items-center justify-center shrink-0 transition-shadow ${
                         color.light ? 'ring-1 ring-inset ring-primary-200' : ''
                       } ${
                         selectedColors.includes(color.value)
@@ -397,16 +417,16 @@ const Shop = () => {
                       style={{ backgroundColor: color.color }}
                     >
                       {selectedColors.includes(color.value) && (
-                        <div className="w-2 h-2 bg-white rounded-full" />
+                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 bg-white rounded-full" />
                       )}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-primary-900 mb-2">Sizes</label>
-                <div className="grid grid-cols-4 gap-2">
+              <div className="mb-4 lg:mb-6">
+                <label className="block text-xs lg:text-sm font-medium text-primary-900 mb-2">Sizes</label>
+                <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
                   {sizes.map((size) => (
                     <button
                       key={size}
@@ -416,7 +436,7 @@ const Shop = () => {
                           prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
                         );
                       }}
-                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                      className={`px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg lg:rounded-xl text-xs lg:text-sm font-medium transition-colors ${
                         selectedSizes.includes(size)
                           ? 'bg-primary-600 text-white'
                           : 'bg-primary-100 text-primary-800 hover:bg-primary-200'
@@ -428,15 +448,15 @@ const Shop = () => {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-primary-900 mb-2">Minimum Rating</label>
-                <div className="space-y-2">
+              <div className="mb-4 lg:mb-6">
+                <label className="block text-xs lg:text-sm font-medium text-primary-900 mb-2">Minimum Rating</label>
+                <div className="space-y-1 lg:space-y-2">
                   {[4, 3, 2, 1].map((rating) => (
                     <button
                       key={rating}
                       type="button"
                       onClick={() => setRatingFilter(rating)}
-                      className={`flex items-center space-x-2 w-full px-3 py-2 rounded-xl text-left transition-colors ${
+                      className={`flex items-center space-x-2 w-full px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg lg:rounded-xl text-left transition-colors ${
                         ratingFilter === rating
                           ? 'bg-primary-50 border border-primary-600'
                           : 'bg-primary-50 border border-primary-100 hover:bg-primary-100'
@@ -446,13 +466,13 @@ const Shop = () => {
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-4 h-4 ${
+                            className={`w-3 h-3 lg:w-4 lg:h-4 ${
                               i < rating ? 'text-secondary-400 fill-current' : 'text-primary-200'
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-sm text-primary-700">& Up</span>
+                      <span className="text-xs lg:text-sm text-primary-700">& Up</span>
                     </button>
                   ))}
                 </div>
@@ -461,21 +481,6 @@ const Shop = () => {
           </div>
 
           <div className="flex-1">
-            <div className="lg:hidden mb-4">
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-primary-200 rounded-2xl shadow-card hover:bg-primary-50/80"
-              >
-                <SlidersHorizontal className="w-5 h-5" />
-                <span className="font-medium">{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
-                {activeFiltersCount > 0 && (
-                  <span className="bg-primary-600 text-white text-xs px-2 py-1 rounded-full">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-            </div>
 
             {isLoading ? (
               <div className="flex justify-center py-24">
@@ -497,7 +502,7 @@ const Shop = () => {
                 </button>
               </div>
             ) : (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-4'}>
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6' : 'space-y-3 sm:space-y-4'}>
                 {sortedProducts.map((product) => {
                   const cartQuantity = getCartQuantity(product.id);
                   const isFavorite = favorites.includes(product.id);
@@ -644,70 +649,7 @@ const Shop = () => {
           </div>
         </div>
 
-        {/* Downloadable Resources Section */}
-        <div className="mt-16 bg-surface rounded-3xl p-8">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-primary-900 mb-4 font-display">Downloadable Resources</h2>
-            <p className="text-lg text-primary-700 max-w-2xl mx-auto">
-              Professional guides, templates, and charts to help with your embroidery projects
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                title: 'Embroidery Guide',
-                description: 'Complete guide to getting started with embroidery',
-                type: 'PDF',
-                size: '2.5 MB',
-                price: 'KES 500'
-              },
-              {
-                title: 'Design Templates',
-                description: '50+ professional embroidery design templates',
-                type: 'ZIP',
-                size: '15 MB',
-                price: 'KES 1,000'
-              },
-              {
-                title: 'Color Charts',
-                description: 'Thread color compatibility charts',
-                type: 'PDF',
-                size: '1.2 MB',
-                price: 'KES 300'
-              },
-            ].map((resource, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl border border-primary-100 shadow-card p-6 hover:shadow-float transition-all duration-300"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-secondary-100 rounded-xl shrink-0">
-                    <FileText className="w-6 h-6 text-secondary-700" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg text-primary-900 mb-2">{resource.title}</h3>
-                    <p className="text-primary-700 text-sm mb-3">{resource.description}</p>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs text-primary-600">
-                        {resource.type} • {resource.size}
-                      </span>
-                      <span className="text-sm font-bold text-secondary-700">
-                        {resource.price}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="w-full mt-3 bg-secondary-500 text-primary-900 px-4 py-2 rounded-xl hover:bg-secondary-400 transition-colors font-medium text-sm"
-                    >
-                      Purchase & Download
-                    </button>
-                  </div>
-                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

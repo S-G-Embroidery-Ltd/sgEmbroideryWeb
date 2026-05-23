@@ -15,9 +15,13 @@ import userRoutes from './routes/user';
 import toolsRoutes from './routes/tools';
 import paymentRoutes from './routes/payments';
 import paystackWebhookRouter from './routes/paystackWebhook';
+import clerkWebhookRouter from './routes/clerkWebhook';
 import internalRoutes from './routes/internal';
 import digitizingRequestRoutes from './routes/digitizingRequests';
 import quoteRequestRoutes from './routes/quoteRequests';
+import contactRoutes from './routes/contact';
+import volunteerRoutes from './routes/volunteer';
+import testRoutes from './routes/test';
 import { getCheckoutInfo } from './routes/checkoutInfo';
 import { getCorsOrigins } from './utils/corsOrigins';
 
@@ -47,6 +51,9 @@ app.use(cors({
 // Paystack webhook: raw body required for HMAC (must be before express.json)
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }), paystackWebhookRouter);
 
+// Clerk webhook: raw body required for signature verification
+app.use('/api/clerk/webhook', express.raw({ type: 'application/json' }), clerkWebhookRouter);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -67,6 +74,9 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/internal', internalRoutes);
 app.use('/api/digitizing-requests', digitizingRequestRoutes);
 app.use('/api/quote-requests', quoteRequestRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/volunteer', volunteerRoutes);
+app.use('/api/test', testRoutes);
 
 
 // Health check
@@ -93,6 +103,7 @@ function sleep(ms: number) {
 
 async function connectMongoWithRetries(): Promise<void> {
   const uri = process.env.MONGODB_URI?.trim();
+  console.log('MONGODB_URI:', uri);
   if (process.env.RENDER && !uri) {
     console.error(
       '[startup] MONGODB_URI is not set. Add it under Render → Environment → MONGODB_URI (your Atlas connection string).'
