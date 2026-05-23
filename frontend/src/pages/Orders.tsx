@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Calendar, DollarSign, ArrowRight, Filter, Search, X } from 'lucide-react';
+import { Package, Calendar, DollarSign, ArrowRight, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ordersAPI } from '../services/api';
 

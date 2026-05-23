@@ -38,8 +38,6 @@ const Quote = () => {
 
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [referencePreviews, setReferencePreviews] = useState<{file: File, preview: string}[]>([]);
-  const [referenceUrls, setReferenceUrls] = useState<string[]>([]);
-  const [urlInput, setUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
