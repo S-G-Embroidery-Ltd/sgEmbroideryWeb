@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import User from '../models/User';
 import { authMiddleware } from '../middleware/auth';
-import { PasswordValidator } from '../../utils/passwordValidator';
+import { PasswordValidator } from '../utils/passwordValidator';
 import { sendMailSafe } from '../services/email';
 
 const router = express.Router();

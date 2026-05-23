@@ -100,15 +100,46 @@ const Shop = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['shop-products', selectedCategory, priceRange.min, priceRange.max, appliedSearch],
     queryFn: async () => {
-      const res = await productsAPI.getAll({
-        category: selectedCategory === 'all' ? undefined : selectedCategory,
-        minPrice: priceRange.min > 0 ? priceRange.min : undefined,
-        maxPrice: priceRange.max < 10000 ? priceRange.max : undefined,
-        search: appliedSearch.trim() || undefined,
-        limit: 60,
-        page: 1,
-      });
-      return res.data as { products: ApiProduct[]; pagination: { total: number } };
+      try {
+        const params: {
+          category?: string;
+          search?: string;
+          inStock: boolean;
+          minPrice?: number;
+          maxPrice?: number;
+        } = {
+          category: selectedCategory !== 'all' ? selectedCategory : undefined,
+          search: appliedSearch.trim() || undefined,
+          inStock: true // Only show in-stock products by default
+        };
+        
+        // Add price range filters if specified
+        if (priceRange.min > 0) params.minPrice = priceRange.min;
+        if (priceRange.max < 10000) params.maxPrice = priceRange.max;
+        
+        // Only add pagination if we actually need it for large datasets
+        // For now, get all products without pagination
+        const res = await productsAPI.getAll(params);
+        
+        // Handle the new API response structure
+        if (res.data && typeof res.data === 'object' && 'success' in res.data && res.data.success) {
+          const responseData = res.data as { success: boolean; data: ApiProduct[]; pagination?: { total: number } };
+          return {
+            products: responseData.data,
+            pagination: responseData.pagination || { total: responseData.data.length }
+          };
+        }
+        
+        // Fallback for old structure or direct array
+        const products = Array.isArray(res.data) ? res.data : (res.data as { products?: ApiProduct[] })?.products || [];
+        return {
+          products: products as ApiProduct[],
+          pagination: (res.data as { pagination?: { total: number } })?.pagination || { total: products.length }
+        };
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch products';
+        throw new Error(errorMessage);
+      }
     },
   });
 
