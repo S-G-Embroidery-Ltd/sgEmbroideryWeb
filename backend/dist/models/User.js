@@ -56,15 +56,43 @@ const userSchema = new mongoose_1.Schema({
     password: {
         type: String,
         required() {
-            return !this.googleId;
+            return !this.googleId && !this.clerkId;
         },
-        minlength: [6, 'Password must be at least 6 characters long'],
+        minlength: [8, 'Password must be at least 8 characters long'],
+        validate: {
+            validator: function (password) {
+                // At least one uppercase letter
+                if (!/[A-Z]/.test(password))
+                    return false;
+                // At least one lowercase letter
+                if (!/[a-z]/.test(password))
+                    return false;
+                // At least one number
+                if (!/\d/.test(password))
+                    return false;
+                // At least one special character
+                if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+                    return false;
+                return true;
+            },
+            message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+        },
         select: false,
     },
     googleId: {
         type: String,
         sparse: true,
         unique: true,
+    },
+    clerkId: {
+        type: String,
+        sparse: true,
+        unique: true,
+    },
+    provider: {
+        type: String,
+        enum: ['email', 'google', 'clerk'],
+        default: 'email',
         trim: true,
     },
     avatar: {
@@ -79,6 +107,14 @@ const userSchema = new mongoose_1.Schema({
             type: mongoose_1.Schema.Types.ObjectId,
             ref: 'Order',
         }],
+    resetToken: {
+        type: String,
+        select: false,
+    },
+    resetTokenExpiry: {
+        type: Date,
+        select: false,
+    },
 }, {
     timestamps: true,
 });
@@ -103,5 +139,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
         return false;
     return bcryptjs_1.default.compare(candidatePassword, pwd);
 };
+// Index for better query performance (email, googleId, clerkId already have unique indexes)
+userSchema.index({ createdAt: -1 });
 exports.default = mongoose_1.default.model('User', userSchema);
 //# sourceMappingURL=User.js.map

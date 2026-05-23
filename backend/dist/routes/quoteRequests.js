@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const multer_1 = __importDefault(require("multer"));
+const optionalAuth_1 = require("../middleware/optionalAuth");
 const auth_1 = require("../middleware/auth");
 const QuoteRequest_1 = __importDefault(require("../models/QuoteRequest"));
 const email_1 = require("../services/email");
@@ -19,26 +20,28 @@ const storage = multer_1.default.diskStorage({
     destination: (_req, _file, cb) => cb(null, refDir),
     filename: (req, file, cb) => {
         const user = req.user;
-        const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-        cb(null, `${Date.now()}-${user?.userId || 'anon'}-${safe}`);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const name = (req.body.name || 'user').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
+        const originalName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const extension = originalName.split('.').pop();
+        const baseName = originalName.split('.').slice(0, -1).join('.').slice(0, 30);
+        cb(null, `${timestamp}-${name}-${baseName}.${extension}`);
     },
 });
 const upload = (0, multer_1.default)({
     storage,
     limits: { fileSize: 12 * 1024 * 1024 },
 });
-router.post('/', auth_1.authMiddleware, upload.single('reference'), async (req, res) => {
+router.post('/', optionalAuth_1.optionalAuthMiddleware, upload.array('files', 5), async (req, res) => {
     try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
         const name = (req.body.name || '').toString().trim();
         const email = (req.body.email || '').toString().trim();
         const phone = (req.body.phone || '').toString().trim();
         const company = (req.body.company || '').toString().trim();
         const description = (req.body.description || '').toString().trim();
         const quantity = (req.body.quantity || '').toString().trim();
-        const timeline = (req.body.timeline || '').toString().trim();
+        const workSubmissionDate = (req.body.workSubmissionDate || '').toString().trim();
+        const brandingTypes = Array.isArray(req.body.brandingTypes) ? req.body.brandingTypes : [];
         const specialInstructions = (req.body.specialInstructions || '').toString().trim();
         if (!name || !email || !phone || !description) {
             if (req.file?.path && fs_1.default.existsSync(req.file.path)) {
@@ -51,21 +54,22 @@ router.post('/', auth_1.authMiddleware, upload.single('reference'), async (req, 
             }
             return res.status(400).json({ message: 'Name, email, phone, and project description are required' });
         }
-        let referenceFile;
-        if (req.file) {
-            referenceFile = path_1.default.join('quote-references', req.file.filename).replace(/\\/g, '/');
+        let uploadedFiles = [];
+        if (req.files && Array.isArray(req.files)) {
+            uploadedFiles = req.files.map(file => path_1.default.join('quote-references', file.filename).replace(/\\/g, '/'));
         }
         const doc = new QuoteRequest_1.default({
-            userId: req.user.userId,
+            userId: req.user?.userId || undefined,
             name,
             email,
             phone,
             company: company || undefined,
             description,
             quantity: quantity || undefined,
-            timeline: timeline || undefined,
+            workSubmissionDate: workSubmissionDate || undefined,
+            brandingTypes: brandingTypes.length > 0 ? brandingTypes : undefined,
             specialInstructions: specialInstructions || undefined,
-            referenceFile,
+            referenceFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
             status: 'submitted',
         });
         await doc.save();
@@ -76,9 +80,10 @@ router.post('/', auth_1.authMiddleware, upload.single('reference'), async (req, 
             company: company || undefined,
             description,
             quantity: quantity || undefined,
-            timeline: timeline || undefined,
+            workSubmissionDate: workSubmissionDate || undefined,
+            brandingTypes: brandingTypes.length > 0 ? brandingTypes : undefined,
             specialInstructions: specialInstructions || undefined,
-            referenceFile,
+            referenceFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
         }).catch((e) => console.error('[email] quote:', e));
         res.status(201).json({
             message: 'Quote request submitted',

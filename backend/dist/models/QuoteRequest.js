@@ -38,7 +38,7 @@ const quoteRequestSchema = new mongoose_1.Schema({
     userId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: false,
     },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true },
@@ -46,14 +46,20 @@ const quoteRequestSchema = new mongoose_1.Schema({
     company: { type: String, trim: true },
     description: { type: String, required: true, trim: true },
     quantity: { type: String, trim: true },
-    timeline: { type: String, trim: true },
+    workSubmissionDate: { type: String, trim: true },
+    brandingTypes: [{ type: String }],
     specialInstructions: { type: String, trim: true },
-    referenceFile: { type: String, trim: true },
+    referenceFiles: [{ type: String, trim: true }],
     status: {
         type: String,
         enum: ['submitted', 'reviewed', 'closed'],
         default: 'submitted',
     },
 }, { timestamps: true });
+// Index for better query performance
+quoteRequestSchema.index({ email: 1 });
+quoteRequestSchema.index({ userId: 1 }, { sparse: true });
+quoteRequestSchema.index({ status: 1 });
+quoteRequestSchema.index({ createdAt: -1 });
 exports.default = mongoose_1.default.model('QuoteRequest', quoteRequestSchema);
 //# sourceMappingURL=QuoteRequest.js.map

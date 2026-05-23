@@ -1,15 +1,16 @@
 import mongoose, { Document } from 'mongoose';
 export interface IQuoteRequest extends Document {
-    userId: mongoose.Types.ObjectId;
+    userId?: mongoose.Types.ObjectId;
     name: string;
     email: string;
     phone: string;
     company?: string;
     description: string;
     quantity?: string;
-    timeline?: string;
+    workSubmissionDate?: string;
+    brandingTypes?: string[];
     specialInstructions?: string;
-    referenceFile?: string;
+    referenceFiles?: string[];
     status: 'submitted' | 'reviewed' | 'closed';
     createdAt: Date;
     updatedAt: Date;

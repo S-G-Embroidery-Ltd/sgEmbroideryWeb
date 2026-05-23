@@ -3,7 +3,7 @@ export interface IProduct extends Document {
     name: string;
     description: string;
     price: number;
-    category: 'physical' | 'embroidery' | 'downloadable';
+    category: 'physical' | 'embroidery';
     sizes?: string[];
     colors?: string[];
     images: string[];

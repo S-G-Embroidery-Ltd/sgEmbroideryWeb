@@ -4,9 +4,13 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     googleId?: string;
+    clerkId?: string;
     avatar?: string;
+    provider?: 'email' | 'google' | 'clerk';
     favorites: string[];
     orders: string[];
+    resetToken?: string;
+    resetTokenExpiry?: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;

@@ -55,8 +55,8 @@ const productSchema = new mongoose_1.Schema({
         type: String,
         required: [true, 'Product category is required'],
         enum: {
-            values: ['physical', 'embroidery', 'downloadable'],
-            message: 'Category must be physical, embroidery, or downloadable',
+            values: ['physical', 'embroidery'],
+            message: 'Category must be physical or embroidery',
         },
     },
     sizes: [{

@@ -47,7 +47,7 @@ router.post('/initiate', auth_1.authMiddleware, async (req, res) => {
             amount: amountMinor,
             currency: PAYSTACK_CURRENCY,
             reference,
-            callback_url: `${site}/payment/verify`,
+            callback_url: `${site}/verify`,
             metadata: {
                 orderId: String(order._id),
                 userId: String(req.user.userId),

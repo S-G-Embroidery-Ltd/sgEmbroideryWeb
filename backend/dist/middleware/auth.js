@@ -12,7 +12,10 @@ const authMiddleware = (req, res, next) => {
             return res.status(401).json({ message: 'Access denied. No token provided.' });
         }
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        req.user = decoded;
+        req.user = {
+            userId: decoded.userId,
+            email: decoded.email
+        };
         next();
     }
     catch (error) {
