@@ -5,3 +5,7 @@
 [build]
   command = "cd frontend && npm install && npm run build"
   publish = "frontend/build"
+
+# Environment variables for production
+[build.environment]
+  VITE_API_URL = "https://sgembroidery-backend.onrender.com/api"
