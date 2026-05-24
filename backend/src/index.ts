@@ -51,6 +51,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://sgembroidery.co.ke',
+    'https://www.sgembroidery.co.ke',
     'https://sgembroidery-backend.onrender.com'
   ],
   credentials: true,
