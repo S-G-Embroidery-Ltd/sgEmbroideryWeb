@@ -235,50 +235,16 @@ const Home = () => {
                 <p className="text-primary-700">Unable to load featured products</p>
               </div>
             ) : featuredProducts.length === 0 ? (
-              // Fallback to mockups if no products
-              <>
-                <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
-                  <div className="h-48 bg-gradient-to-br from-primary-100 to-secondary-100" />
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-primary-900 mb-2">Custom T-Shirts</h3>
-                    <p className="text-primary-700 mb-4">Premium quality with custom embroidery</p>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <span className="text-2xl font-bold text-primary-600">KES 1,500</span>
-                      <Link to="/shop" className="btn-primary text-sm">
-                        Order Now
-                      </Link>
-                    </div>
-                  </div>
+              // No products available
+              <div className="col-span-full text-center py-12">
+                <div className="bg-white rounded-2xl shadow-card p-8">
+                  <h3 className="text-xl font-semibold text-primary-900 mb-2">No Products Available</h3>
+                  <p className="text-primary-700 mb-4">Check back soon for new embroidery products</p>
+                  <Link to="/shop" className="btn-primary">
+                    Browse Shop
+                  </Link>
                 </div>
-
-                <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
-                  <div className="h-48 bg-gradient-to-br from-secondary-100 to-accent-100" />
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-primary-900 mb-2">Embroidered Caps</h3>
-                    <p className="text-primary-700 mb-4">Professional caps with custom logos</p>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <span className="text-2xl font-bold text-primary-600">KES 800</span>
-                      <Link to="/shop" className="btn-primary text-sm">
-                        Order Now
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-float transition-all duration-300">
-                  <div className="h-48 bg-gradient-to-br from-accent-100 to-primary-100" />
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-primary-900 mb-2">Corporate Uniforms</h3>
-                    <p className="text-primary-700 mb-4">Complete uniform solutions</p>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <span className="text-2xl font-bold text-primary-600">KES 2,200</span>
-                      <Link to="/branding" className="btn-primary text-sm">
-                        Order Now
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </>
+              </div>
             ) : (
               // Real products from API
               displayProducts.map((product: Product) => (

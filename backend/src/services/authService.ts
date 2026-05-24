@@ -74,66 +74,15 @@ export class AuthService {
   }
 
   static async googleLogin(googleToken: string): Promise<AuthResponse> {
-    // For development, we'll mock the Google token verification
-    // In production, this would verify the token with Google
-    try {
-      // Mock Google user info (in production, fetch from Google)
-      const mockGoogleUser = {
-        sub: 'google_123456',
-        email: 'test@gmail.com',
-        name: 'Google User',
-        picture: 'https://via.placeholder.com/150',
-        email_verified: true,
-      };
-
-      // Find user by Google ID
-      let user = await memoryDB.findUserByGoogleId(mockGoogleUser.sub);
-      
-      if (!user) {
-        // Check if user exists with same email
-        const existingUser = await memoryDB.findUserByEmail(mockGoogleUser.email);
-        if (existingUser) {
-          // Link Google account to existing user
-          user = await memoryDB.updateUser(existingUser._id, {
-            googleId: mockGoogleUser.sub,
-            name: mockGoogleUser.name,
-            avatar: mockGoogleUser.picture,
-          });
-        } else {
-          // Create new user from Google
-          user = await memoryDB.createUser({
-            name: mockGoogleUser.name,
-            email: mockGoogleUser.email,
-            googleId: mockGoogleUser.sub,
-            avatar: mockGoogleUser.picture,
-          });
-        }
-      } else {
-        // Update existing Google user info
-        user = await memoryDB.updateUser(user._id, {
-          name: mockGoogleUser.name,
-          avatar: mockGoogleUser.picture,
-        });
-      }
-
-      if (!user) {
-        throw new Error('Failed to create or update user');
-      }
-
-      const token = this.generateToken(user._id);
-      
-      return {
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          avatar: user.avatar,
-        },
-      };
-    } catch (error) {
-      throw new Error('Invalid Google token');
-    }
+    // Google OAuth is not properly configured yet
+    // In production, this would verify the token with Google OAuth2 API
+    throw new Error('Google OAuth is not configured. Please use email/password login instead.');
+    
+    // TODO: Implement proper Google OAuth verification
+    // 1. Verify token with Google OAuth2 API
+    // 2. Extract user information from verified token
+    // 3. Create or update user in database
+    // 4. Generate JWT token for authenticated user
   }
 
   static async getCurrentUser(userId: string): Promise<AuthResponse['user'] | null> {

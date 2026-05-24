@@ -53,8 +53,7 @@ const deliveryZoneSchema = new Schema<IDeliveryZone>({
   timestamps: true,
 });
 
-// Index for faster queries
-deliveryZoneSchema.index({ zoneId: 1 });
+// Index for faster queries (zoneId already has unique index)
 deliveryZoneSchema.index({ towns: 1 });
 deliveryZoneSchema.index({ country: 1 });
 deliveryZoneSchema.index({ isActive: 1 });

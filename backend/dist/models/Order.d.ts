@@ -22,6 +22,17 @@ export interface IOrderDigitizing {
     wantStitchingQuote?: string;
     quantity?: string;
 }
+export interface IOrderDeliveryInfo {
+    zone: string;
+    zoneName: string;
+    town: string;
+    county?: string;
+    baseCost: number;
+    finalCost: number;
+    estimatedDays: number;
+    freeShippingApplied: boolean;
+    estimatedDelivery: string;
+}
 export interface IOrder extends Document {
     userId: mongoose.Types.ObjectId;
     orderType?: 'standard' | 'digitizing';
@@ -50,6 +61,7 @@ export interface IOrder extends Document {
         country: string;
         postalCode: string;
     };
+    deliveryInfo?: IOrderDeliveryInfo;
     orderNumber: string;
     createdAt: Date;
     updatedAt: Date;

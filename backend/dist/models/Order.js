@@ -81,6 +81,17 @@ const digitizingSchema = new mongoose_1.Schema({
     wantStitchingQuote: { type: String, trim: true },
     quantity: { type: String, trim: true },
 }, { _id: false });
+const deliveryInfoSchema = new mongoose_1.Schema({
+    zone: { type: String, required: true, trim: true },
+    zoneName: { type: String, required: true, trim: true },
+    town: { type: String, required: true, trim: true },
+    county: { type: String, trim: true },
+    baseCost: { type: Number, required: true, min: 0 },
+    finalCost: { type: Number, required: true, min: 0 },
+    estimatedDays: { type: Number, required: true, min: 1 },
+    freeShippingApplied: { type: Boolean, required: true },
+    estimatedDelivery: { type: String, required: true, trim: true },
+}, { _id: false });
 const orderSchema = new mongoose_1.Schema({
     userId: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -97,6 +108,10 @@ const orderSchema = new mongoose_1.Schema({
         required: false,
     },
     items: [orderItemSchema],
+    deliveryInfo: {
+        type: deliveryInfoSchema,
+        required: false,
+    },
     subtotal: {
         type: Number,
         required: true,

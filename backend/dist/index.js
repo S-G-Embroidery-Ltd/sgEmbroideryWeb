@@ -26,6 +26,7 @@ const quoteRequests_1 = __importDefault(require("./routes/quoteRequests"));
 const contact_1 = __importDefault(require("./routes/contact"));
 const volunteer_1 = __importDefault(require("./routes/volunteer"));
 const test_1 = __importDefault(require("./routes/test"));
+const delivery_1 = __importDefault(require("./routes/delivery"));
 const checkoutInfo_1 = require("./routes/checkoutInfo");
 // Load environment variables
 dotenv_1.default.config();
@@ -45,7 +46,11 @@ const limiter = (0, express_rate_limit_1.default)({
 app.use((0, helmet_1.default)());
 app.use(limiter);
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+        'http://localhost:5173',
+        'https://sgembroidery.co.ke',
+        'https://sgembroidery-backend.onrender.com'
+    ],
     credentials: true,
 }));
 // Paystack webhook: raw body required for HMAC (must be before express.json)
@@ -73,6 +78,7 @@ app.use('/api/quote-requests', quoteRequests_1.default);
 app.use('/api/contact', contact_1.default);
 app.use('/api/volunteer', volunteer_1.default);
 app.use('/api/test', test_1.default);
+app.use('/api/delivery', delivery_1.default);
 // Health check
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });

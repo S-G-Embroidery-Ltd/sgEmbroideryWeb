@@ -97,93 +97,12 @@ router.get('/', async (req, res) => {
         });
       }
       
-      // If no products found, return sample products
+      // If no products found, return empty array
       if (products.length === 0) {
-        console.log('📦 No products found, returning sample products...');
-        const sampleProducts = [
-          {
-            _id: 'sample1',
-            name: 'Custom Embroidered Polo Shirt',
-            description: 'High-quality polo shirt with custom embroidery. Perfect for corporate uniforms and team wear.',
-            price: 2500,
-            category: 'physical',
-            images: ['/images/polo-shirt.jpg'],
-            inStock: true,
-            featured: true,
-            tags: ['polo', 'embroidery', 'custom', 'corporate'],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            _id: 'sample2',
-            name: 'Corporate Uniform Package',
-            description: 'Complete corporate uniform set with professional embroidery. Includes shirt, pants, and accessories.',
-            price: 5000,
-            category: 'physical',
-            images: ['/images/corporate-uniform.jpg'],
-            inStock: true,
-            featured: true,
-            tags: ['corporate', 'uniform', 'package', 'professional'],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            _id: 'sample3',
-            name: 'Embroidered Cap',
-            description: 'Premium quality cap with custom embroidery design. Great for promotions and casual wear.',
-            price: 800,
-            category: 'physical',
-            images: ['/images/embroidered-cap.jpg'],
-            inStock: true,
-            featured: false,
-            tags: ['cap', 'embroidery', 'accessories', 'promotional'],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            _id: 'sample4',
-            name: 'Custom Embroidered T-Shirt',
-            description: 'Comfortable cotton t-shirt with professional embroidery. Ideal for events and casual wear.',
-            price: 1200,
-            category: 'physical',
-            images: ['/images/embroidered-tshirt.jpg'],
-            inStock: true,
-            featured: false,
-            tags: ['tshirt', 'embroidery', 'casual', 'events'],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            _id: 'sample5',
-            name: 'Embroidered Jacket',
-            description: 'Premium jacket with custom embroidery. Perfect for corporate events and team building.',
-            price: 4500,
-            category: 'physical',
-            images: ['/images/embroidered-jacket.jpg'],
-            inStock: true,
-            featured: true,
-            tags: ['jacket', 'embroidery', 'corporate', 'premium'],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            _id: 'sample6',
-            name: 'Embroidered Bag',
-            description: 'Sturdy bag with custom embroidery design. Great for promotions and daily use.',
-            price: 1500,
-            category: 'physical',
-            images: ['/images/embroidered-bag.jpg'],
-            inStock: true,
-            featured: false,
-            tags: ['bag', 'embroidery', 'accessories', 'promotional'],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-        
+        console.log('📦 No products found, returning empty array');
         return res.json({
           success: true,
-          data: sampleProducts
+          data: []
         });
       }
       

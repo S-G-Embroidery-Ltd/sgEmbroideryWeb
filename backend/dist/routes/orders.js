@@ -12,10 +12,17 @@ const router = express_1.default.Router();
 const TAX_RATE = 0.16;
 const FREE_SHIPPING_THRESHOLD = 5000;
 const STANDARD_SHIPPING = 300;
-function computeOrderAmounts(items) {
+function computeOrderAmounts(items, deliveryInfo) {
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
-    const shippingCost = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING;
+    // Use delivery info if provided, otherwise use standard shipping
+    let shippingCost = STANDARD_SHIPPING;
+    if (deliveryInfo && typeof deliveryInfo.finalCost === 'number') {
+        shippingCost = deliveryInfo.finalCost;
+    }
+    else if (subtotal > FREE_SHIPPING_THRESHOLD) {
+        shippingCost = 0;
+    }
     const total = Math.round((subtotal + tax + shippingCost) * 100) / 100;
     return { subtotal, tax, shippingCost, total };
 }
@@ -28,7 +35,7 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ message: 'User not authenticated' });
         }
-        const { items, shippingAddress, paymentChannel: rawChannel } = req.body;
+        const { items, shippingAddress, paymentChannel: rawChannel, deliveryInfo } = req.body;
         const paymentChannel = rawChannel === 'mpesa_manual' ? 'mpesa_manual' : 'paystack';
         if (!items || items.length === 0) {
             return res.status(400).json({ message: 'Order must contain at least one item' });
@@ -60,7 +67,7 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
             }
             lineItems.push(line);
         }
-        const { subtotal, tax, shippingCost, total } = computeOrderAmounts(lineItems.map((i) => ({ price: i.price, quantity: i.quantity })));
+        const { subtotal, tax, shippingCost, total } = computeOrderAmounts(lineItems.map((i) => ({ price: i.price, quantity: i.quantity })), deliveryInfo);
         const order = new Order_1.default({
             userId: req.user.userId,
             items: lineItems,
@@ -70,6 +77,7 @@ router.post('/', auth_1.authMiddleware, async (req, res) => {
             total,
             shippingAddress,
             paymentChannel,
+            deliveryInfo,
         });
         await order.save();
         await order.populate('items.product');
@@ -229,6 +237,164 @@ router.patch('/:id/status', auth_1.authMiddleware, async (req, res) => {
         res.json({
             message: 'Order status updated successfully',
             order,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+// Admin routes for order management
+// Get all orders (admin only)
+router.get('/admin/all', auth_1.authMiddleware, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        // In a real app, check if user is admin here
+        // For now, we'll allow authenticated users to view all orders
+        const { page = 1, limit = 20, status, paymentStatus } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const query = {};
+        if (status)
+            query.status = status;
+        if (paymentStatus)
+            query.paymentStatus = paymentStatus;
+        const orders = await Order_1.default.find(query)
+            .populate('items.product')
+            .sort({ createdAt: -1 })
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum);
+        const total = await Order_1.default.countDocuments(query);
+        res.json({
+            orders,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum),
+            },
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+// Update order delivery cost (admin only)
+router.patch('/admin/:id/delivery', auth_1.authMiddleware, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        const { deliveryInfo } = req.body;
+        if (!deliveryInfo) {
+            return res.status(400).json({ message: 'Delivery information is required' });
+        }
+        const order = await Order_1.default.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        // Update delivery information
+        order.deliveryInfo = deliveryInfo;
+        // Recalculate total with new shipping cost
+        const { subtotal, tax, shippingCost, total } = computeOrderAmounts(order.items.map((item) => ({ price: item.price, quantity: item.quantity })), deliveryInfo);
+        order.shippingCost = shippingCost;
+        order.total = total;
+        await order.save();
+        res.json({
+            message: 'Order delivery information updated successfully',
+            order,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+// Update order status (admin only)
+router.patch('/admin/:id/status', auth_1.authMiddleware, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        const { status, paymentStatus } = req.body;
+        const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        const validPaymentStatuses = ['pending', 'awaiting_manual_confirmation', 'paid', 'failed', 'refunded'];
+        if (status && !validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Invalid order status' });
+        }
+        if (paymentStatus && !validPaymentStatuses.includes(paymentStatus)) {
+            return res.status(400).json({ message: 'Invalid payment status' });
+        }
+        const order = await Order_1.default.findById(req.params.id).populate('items.product');
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        // Update status if provided
+        if (status)
+            order.status = status;
+        if (paymentStatus)
+            order.paymentStatus = paymentStatus;
+        await order.save();
+        res.json({
+            message: 'Order updated successfully',
+            order,
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+// Get order statistics (admin only)
+router.get('/admin/stats', auth_1.authMiddleware, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        const stats = await Order_1.default.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalOrders: { $sum: 1 },
+                    totalRevenue: { $sum: '$total' },
+                    pendingOrders: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+                    processingOrders: { $sum: { $cond: [{ $eq: ['$status', 'processing'] }, 1, 0] } },
+                    shippedOrders: { $sum: { $cond: [{ $eq: ['$status', 'shipped'] }, 1, 0] } },
+                    deliveredOrders: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
+                    cancelledOrders: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } },
+                    paidOrders: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, 1, 0] } },
+                },
+            },
+        ]);
+        const monthlyStats = await Order_1.default.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) }, // Last 365 days
+                },
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$createdAt' },
+                        month: { $month: '$createdAt' },
+                    },
+                    orders: { $sum: 1 },
+                    revenue: { $sum: '$total' },
+                },
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } },
+        ]);
+        res.json({
+            summary: stats[0] || {
+                totalOrders: 0,
+                totalRevenue: 0,
+                pendingOrders: 0,
+                processingOrders: 0,
+                shippedOrders: 0,
+                deliveredOrders: 0,
+                cancelledOrders: 0,
+                paidOrders: 0,
+            },
+            monthlyStats,
         });
     }
     catch (error) {

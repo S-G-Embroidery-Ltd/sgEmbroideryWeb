@@ -87,92 +87,12 @@ router.get('/', async (req, res) => {
                     message: 'Database query failed: ' + (dbError instanceof Error ? dbError.message : 'Unknown error')
                 });
             }
-            // If no products found, return sample products
+            // If no products found, return empty array
             if (products.length === 0) {
-                console.log('📦 No products found, returning sample products...');
-                const sampleProducts = [
-                    {
-                        _id: 'sample1',
-                        name: 'Custom Embroidered Polo Shirt',
-                        description: 'High-quality polo shirt with custom embroidery. Perfect for corporate uniforms and team wear.',
-                        price: 2500,
-                        category: 'physical',
-                        images: ['/images/polo-shirt.jpg'],
-                        inStock: true,
-                        featured: true,
-                        tags: ['polo', 'embroidery', 'custom', 'corporate'],
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
-                    {
-                        _id: 'sample2',
-                        name: 'Corporate Uniform Package',
-                        description: 'Complete corporate uniform set with professional embroidery. Includes shirt, pants, and accessories.',
-                        price: 5000,
-                        category: 'physical',
-                        images: ['/images/corporate-uniform.jpg'],
-                        inStock: true,
-                        featured: true,
-                        tags: ['corporate', 'uniform', 'package', 'professional'],
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
-                    {
-                        _id: 'sample3',
-                        name: 'Embroidered Cap',
-                        description: 'Premium quality cap with custom embroidery design. Great for promotions and casual wear.',
-                        price: 800,
-                        category: 'physical',
-                        images: ['/images/embroidered-cap.jpg'],
-                        inStock: true,
-                        featured: false,
-                        tags: ['cap', 'embroidery', 'accessories', 'promotional'],
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
-                    {
-                        _id: 'sample4',
-                        name: 'Custom Embroidered T-Shirt',
-                        description: 'Comfortable cotton t-shirt with professional embroidery. Ideal for events and casual wear.',
-                        price: 1200,
-                        category: 'physical',
-                        images: ['/images/embroidered-tshirt.jpg'],
-                        inStock: true,
-                        featured: false,
-                        tags: ['tshirt', 'embroidery', 'casual', 'events'],
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
-                    {
-                        _id: 'sample5',
-                        name: 'Embroidered Jacket',
-                        description: 'Premium jacket with custom embroidery. Perfect for corporate events and team building.',
-                        price: 4500,
-                        category: 'physical',
-                        images: ['/images/embroidered-jacket.jpg'],
-                        inStock: true,
-                        featured: true,
-                        tags: ['jacket', 'embroidery', 'corporate', 'premium'],
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
-                    {
-                        _id: 'sample6',
-                        name: 'Embroidered Bag',
-                        description: 'Sturdy bag with custom embroidery design. Great for promotions and daily use.',
-                        price: 1500,
-                        category: 'physical',
-                        images: ['/images/embroidered-bag.jpg'],
-                        inStock: true,
-                        featured: false,
-                        tags: ['bag', 'embroidery', 'accessories', 'promotional'],
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                    },
-                ];
+                console.log('📦 No products found, returning empty array');
                 return res.json({
                     success: true,
-                    data: sampleProducts
+                    data: []
                 });
             }
             res.json({
@@ -216,14 +136,40 @@ router.get('/featured/list', async (_req, res) => {
                 message: 'Database connection unavailable'
             });
         }
-        const products = await Product_1.default.find({ featured: true })
+        // Try to get featured products first
+        let products = await Product_1.default.find({ featured: true })
             .sort({ createdAt: -1 })
             .limit(10)
             .maxTimeMS(5000); // 5 second timeout for featured products
         console.log('✅ Found', products.length, 'featured products');
+        // If we don't have at least 3 featured products, get random products to fill
+        if (products.length < 3) {
+            console.log('🔄 Not enough featured products, getting random products to fill');
+            // Get random products that are in stock
+            const randomProducts = await Product_1.default.find({
+                inStock: true,
+                _id: { $nin: products.map(p => p._id) } // Exclude already selected products
+            })
+                .sort({ createdAt: -1 })
+                .limit(10)
+                .maxTimeMS(5000);
+            // Shuffle and take enough products to reach 3 total
+            const shuffled = randomProducts.sort(() => Math.random() - 0.5);
+            const needed = 3 - products.length;
+            const additionalProducts = shuffled.slice(0, needed);
+            products = [...products, ...additionalProducts];
+            console.log('✅ Added', additionalProducts.length, 'random products, total:', products.length);
+        }
+        // If still no products (empty database), return empty array
+        if (products.length === 0) {
+            console.log('📦 No products in database, returning empty array');
+            products = [];
+        }
+        // Shuffle the final selection to ensure randomness
+        const shuffledProducts = products.sort(() => Math.random() - 0.5);
         res.json({
             success: true,
-            data: products
+            data: shuffledProducts
         });
     }
     catch (error) {

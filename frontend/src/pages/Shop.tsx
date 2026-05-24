@@ -4,18 +4,7 @@ import { Search, Heart, ShoppingCart, Star, Plus, Minus, Grid, List, SlidersHori
 import { useCart } from '../hooks/useCart';
 import { productsAPI } from '../services/api';
 
-const SHOP_MOCKUP_GRADIENTS = [
-  'from-primary-100 to-secondary-100',
-  'from-secondary-100 to-accent-100',
-  'from-accent-100 to-primary-100',
-  'from-primary-200 to-secondary-50',
-  'from-secondary-200 to-primary-100',
-  'from-primary-100 to-accent-100',
-] as const;
-
-function mockupGradientClass(mockupIndex: number) {
-  return SHOP_MOCKUP_GRADIENTS[mockupIndex % SHOP_MOCKUP_GRADIENTS.length];
-}
+// Removed mockup gradients - products should have real images
 
 function assetBase(): string {
   const raw =
@@ -49,7 +38,6 @@ type ApiProduct = {
 
 type DisplayProduct = {
   id: string;
-  mockupIndex: number;
   name: string;
   description: string;
   price: number;
@@ -64,12 +52,9 @@ type DisplayProduct = {
 
 function toDisplayProduct(p: ApiProduct): DisplayProduct {
   const id = String(p._id);
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   const img = productImageUrl(p.images);
   return {
     id,
-    mockupIndex: Math.abs(h),
     name: p.name,
     description: p.description,
     price: p.price,
@@ -551,7 +536,9 @@ const Shop = () => {
                             className="absolute inset-0 w-full h-full object-cover"
                           />
                         ) : (
-                          <div className={`absolute inset-0 bg-gradient-to-br ${mockupGradientClass(product.mockupIndex)}`} />
+                          <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                            <span className="text-gray-500 text-sm">No Image</span>
+                          </div>
                         )}
                         {product.badge && (
                           <div className="absolute top-3 left-3 bg-primary-600 text-white text-xs px-2 py-1 rounded-full font-medium z-10">
@@ -621,7 +608,9 @@ const Shop = () => {
                           {product.image ? (
                             <img src={product.image} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${mockupGradientClass(product.mockupIndex)}`} />
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                              <span className="text-gray-500 text-sm">No Image</span>
+                            </div>
                           )}
                         </div>
                         <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between">
