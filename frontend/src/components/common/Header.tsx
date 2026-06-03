@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, X, User, Package, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Search, ShoppingCart, User, ChevronDown, Menu, X, Package } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../hooks/useCart.tsx';
 import ProfileDropdown from './ProfileDropdown';
@@ -14,18 +14,16 @@ const navPill = (active: boolean) =>
   }`;
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { getCartCount } = useCart();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const cartCount = getCartCount();
 
   const handleLogout = () => {
     logout();
-    navigate('/');
   };
 
   const isActivePath = (path: string) => location.pathname === path;
@@ -34,11 +32,26 @@ const Header = () => {
   const servicesPaths = ['/branding', '/textile-solutions', '/portfolio'];
   const servicesActive = servicesPaths.some((p) => isActivePrefix(p));
   const companyActive =
-    isActivePath('/about') || isActivePath('/blog') || isActivePath('/stories') || isActivePath('/careers') || 
+    isActivePath('/about') || isActivePath('/blog') || isActivePath('/stories') || isActivePath('/careers') ||
     isActivePath('/projects') || isActivePath('/volunteer');
 
+  // Lock body scroll and hide WhatsApp buttons when mobile menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('mobile-menu-open');
+    } else {
+      document.body.style.overflow = '';
+      document.body.classList.remove('mobile-menu-open');
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('mobile-menu-open');
+    };
+  }, [isMenuOpen]);
+
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-card border-b-[3px] border-secondary-500">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-card border-b-[3px] border-secondary-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center min-h-[4rem] md:min-h-[4.25rem] py-2 sm:py-3">
           <Link to="/" className="flex items-center gap-2.5 min-w-0 group">
@@ -228,6 +241,18 @@ const Header = () => {
             >
               Quote
             </Link>
+            <Link
+              to="/cart"
+              className="p-2 text-primary-800 hover:bg-primary-50 rounded-full relative"
+              aria-label="Cart"
+            >
+              <ShoppingCart className="w-5 h-5" strokeWidth={2} />
+              {cartCount > 0 && (
+                <span className="absolute top-0 right-0 min-w-[1.125rem] h-4 px-0.5 bg-accent-600 text-white text-[10px] leading-4 font-bold text-center rounded-full">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </Link>
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -252,27 +277,31 @@ const Header = () => {
           </div>
         )}
 
+        {/* Mobile Hamburger Menu */}
         {isMenuOpen && (
-          <div className="lg:hidden pb-5 animate-in slide-in-from-top-3 duration-300 ease-out">
-            <div className="border-t border-primary-100 pt-4">
-              <nav className="flex flex-col gap-1">
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-t border-primary-200 shadow-2xl z-[9999] max-h-[70vh] overflow-y-auto">
+            <nav className="py-4 px-4 space-y-1">
               <Link
                 to="/"
-                className={`py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${navPill(isActivePath('/'))}`}
+                className={`block py-3 px-4 rounded-xl text-sm font-medium transition-all ${
+                  isActivePath('/') ? 'bg-primary-100 text-primary-900' : 'text-primary-800 hover:bg-primary-50'
+                }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 to="/shop"
-                className={`py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${navPill(isActivePath('/shop'))}`}
+                className={`block py-3 px-4 rounded-xl text-sm font-medium transition-all ${
+                  isActivePath('/shop') || location.pathname.startsWith('/shop/') ? 'bg-primary-100 text-primary-900' : 'text-primary-800 hover:bg-primary-50'
+                }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Shop
               </Link>
-              
-              <div className="py-3 px-1">
-                <div className="text-xs font-bold uppercase tracking-wider text-primary-500 mb-3 px-2">Services</div>
+
+              <div className="pt-2">
+                <div className="text-xs font-bold uppercase tracking-wider text-primary-500 mb-2 px-4">Services</div>
                 <div className="space-y-1">
                   {[
                     ['/branding', 'Branding'],
@@ -282,7 +311,7 @@ const Header = () => {
                     <Link
                       key={href}
                       to={href}
-                      className="block py-2.5 px-4 rounded-xl text-sm text-primary-800 hover:bg-surface transition-all duration-200"
+                      className="block py-2.5 px-4 rounded-xl text-sm text-primary-800 hover:bg-primary-50 transition-all"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {label}
@@ -293,17 +322,19 @@ const Header = () => {
 
               <Link
                 to="/tools"
-                className={`py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${navPill(isActivePath('/tools'))}`}
+                className={`block py-3 px-4 rounded-xl text-sm font-medium transition-all ${
+                  isActivePath('/tools') ? 'bg-primary-100 text-primary-900' : 'text-primary-800 hover:bg-primary-50'
+                }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Tools & Resources
               </Link>
 
-              <div className="py-3 px-1">
-                <div className="text-xs font-bold uppercase tracking-wider text-primary-500 mb-3 px-2">About</div>
+              <div className="pt-2">
+                <div className="text-xs font-bold uppercase tracking-wider text-primary-500 mb-2 px-4">About</div>
                 <div className="space-y-1">
-                  <div className="px-2 pb-2">
-                    <p className="text-xs font-medium text-primary-400 mb-2">Company</p>
+                  <div className="px-4 pb-1">
+                    <p className="text-xs font-medium text-primary-400">Company</p>
                   </div>
                   {[
                     ['/about', 'About us'],
@@ -313,14 +344,14 @@ const Header = () => {
                     <Link
                       key={href}
                       to={href}
-                      className="block py-2.5 px-4 rounded-xl text-sm text-primary-800 hover:bg-surface transition-all duration-200"
+                      className="block py-2.5 px-4 rounded-xl text-sm text-primary-800 hover:bg-primary-50 transition-all"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {label}
                     </Link>
                   ))}
-                  <div className="px-2 py-2">
-                    <p className="text-xs font-medium text-primary-400 mb-2">Community</p>
+                  <div className="px-4 py-1">
+                    <p className="text-xs font-medium text-primary-400">Community</p>
                   </div>
                   {[
                     ['/projects', 'Projects'],
@@ -329,7 +360,7 @@ const Header = () => {
                     <Link
                       key={href}
                       to={href}
-                      className="block py-2.5 px-4 rounded-xl text-sm text-primary-800 hover:bg-surface transition-all duration-200"
+                      className="block py-2.5 px-4 rounded-xl text-sm text-primary-800 hover:bg-primary-50 transition-all"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {label}
@@ -337,63 +368,78 @@ const Header = () => {
                   ))}
                 </div>
               </div>
-              </nav>
 
-              <div className="mt-4 pt-4 border-t border-primary-100 flex flex-col gap-2">
+              <div className="pt-4 border-t border-primary-200">
+                <Link
+                  to="/quote"
+                  className="block py-3 px-4 rounded-xl text-sm font-bold uppercase tracking-wide bg-secondary-500 text-primary-900 text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Project Quote
+                </Link>
+              </div>
+            </nav>
+
+            <div className="border-t border-primary-200 p-4">
               {user ? (
                 <>
-                  <div className="flex items-center gap-2 py-3 px-3 rounded-xl">
+                  <div className="flex items-center gap-3 py-3 px-3 rounded-xl bg-surface mb-2">
                     {user.avatar ? (
-                      <img 
-                        src={user.avatar} 
-                        alt={user.name} 
-                        className="w-8 h-8 rounded-full object-cover"
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <User className="w-8 h-8 text-primary-400" />
+                      <User className="w-10 h-10 text-primary-400" />
                     )}
-                    <span className="text-sm font-medium text-primary-900">{user.name}</span>
+                    <div>
+                      <p className="text-sm font-medium text-primary-900">{user.name}</p>
+                      <p className="text-xs text-primary-600">{user.email}</p>
+                    </div>
                   </div>
-                  <Link
-                    to="/profile"
-                    className="flex items-center gap-2 py-3 px-3 rounded-xl text-sm font-medium text-primary-800 hover:bg-surface"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <User className="w-4 h-4" strokeWidth={2} />
-                    Profile
-                  </Link>
-                  <Link
-                    to="/my-activity"
-                    className="flex items-center gap-2 py-3 px-3 rounded-xl text-sm font-medium text-primary-800 hover:bg-surface"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Package className="w-4 h-4" strokeWidth={2} />
-                    My activity
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleLogout();
-                      setIsMenuOpen(false);
-                    }}
-                    className="text-left py-3 px-3 rounded-xl text-sm font-medium text-primary-800 hover:bg-surface"
-                  >
-                    Logout
-                  </button>
+                  <div className="space-y-1">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-3 py-3 px-3 rounded-xl text-sm font-medium text-primary-800 hover:bg-surface"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4" strokeWidth={2} />
+                      Profile
+                    </Link>
+                    <Link
+                      to="/my-activity"
+                      className="flex items-center gap-3 py-3 px-3 rounded-xl text-sm font-medium text-primary-800 hover:bg-surface"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Package className="w-4 h-4" strokeWidth={2} />
+                      My Activity
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left py-3 px-3 rounded-xl text-sm font-medium text-primary-800 hover:bg-surface"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </>
               ) : (
-                <div className="flex flex-col gap-2">
-                  <Link to="/login">
-                    <button 
-                      className="text-center py-3 rounded-2xl text-sm font-medium text-primary-900 bg-surface hover:bg-primary-100 transition-colors w-full"
+                <div className="space-y-2">
+                  <Link to="/login" className="block">
+                    <button
+                      className="w-full py-3 rounded-2xl text-sm font-medium text-primary-900 bg-surface hover:bg-primary-100 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Log in
                     </button>
                   </Link>
-                  <Link to="/register">
-                    <button 
-                      className="text-center py-3 rounded-2xl text-sm font-bold text-white bg-primary-800 hover:bg-primary-900 transition-colors w-full"
+                  <Link to="/register" className="block">
+                    <button
+                      className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-primary-800 hover:bg-primary-900 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Sign up
@@ -401,7 +447,6 @@ const Header = () => {
                   </Link>
                 </div>
               )}
-            </div>
             </div>
           </div>
         )}

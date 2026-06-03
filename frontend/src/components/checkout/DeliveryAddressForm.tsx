@@ -35,50 +35,55 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
 }) => {
   const [address, setAddress] = useState<DeliveryAddress>({
     country: 'Kenya',
-    town: '',
     county: '',
+    streetAddress: '',
     postalCode: '',
     ...initialAddress,
   });
 
-  const [availableTowns, setAvailableTowns] = useState<string[]>([]);
-  const [loadingTowns, setLoadingTowns] = useState(false);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
   const [deliveryCalculation, setDeliveryCalculation] = useState<DeliveryCalculation | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Kenya counties list
+  // Supported countries
+  const countries = ['Kenya', 'Uganda', 'Tanzania', 'Rwanda'];
+
+  // Kenya counties list (official 47 counties)
   const kenyaCounties = [
-    'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', // Coast
-    'Taita Taveta', 'Garissa', 'Wajir', 'Mandera', 'Marsabit', // North Eastern
-    'Isiolo', 'Meru', 'Tharaka Nithi', 'Embu', 'Kitui', // Eastern
-    'Machakos', 'Makueni', 'Kajiado', 'Kiambu', 'Muranga', // Central
-    'Nyeri', 'Kirinyaga', 'Nyandarua', // Central continued
-    'Turkana', 'West Pokot', 'Samburu', 'Trans Nzoia', // Rift Valley
-    'Uasin Gishu', 'Elgeyo Marakwet', 'Nandi', 'Baringo', // Rift Valley continued
-    'Laikipia', 'Nakuru', 'Narok', 'Kajiado', 'Bomet', // Rift Valley continued
+    'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita–Taveta', // Coast
+    'Garissa', 'Wajir', 'Mandera', // North Eastern
+    'Marsabit', 'Isiolo', 'Meru', 'Tharaka-Nithi', 'Embu', 'Kitui', 'Machakos', 'Makueni', // Eastern
+    'Nyandarua', 'Nyeri', 'Kirinyaga', 'Murang\'a', 'Kiambu', // Central
+    'Turkana', 'West Pokot', 'Samburu', 'Trans-Nzoia', 'Uasin Gishu', 'Elgeyo-Marakwet', 'Nandi', 'Baringo', 'Laikipia', 'Nakuru', 'Narok', 'Kajiado', 'Kericho', 'Bomet', // Rift Valley
     'Kakamega', 'Vihiga', 'Bungoma', 'Busia', // Western
     'Siaya', 'Kisumu', 'Homa Bay', 'Migori', 'Kisii', 'Nyamira', // Nyanza
     'Nairobi', // Nairobi
   ];
 
-  const fetchTowns = async (country: string) => {
-    try {
-      setLoadingTowns(true);
-      const response = await deliveryAPI.getTowns(country);
-      setAvailableTowns(response.data.data || []);
-      setError(null);
-    } catch (error) {
-      console.error('Error fetching towns:', error);
-      setError('Failed to fetch towns');
-      setAvailableTowns([]);
-    } finally {
-      setLoadingTowns(false);
-    }
-  };
+  // Uganda districts list (major districts - Uganda has 135+ districts)
+  const ugandaDistricts = [
+    'Kampala', 'Wakiso', 'Mukono', 'Mpigi', 'Jinja', 'Gulu', 'Lira', 'Mbarara',
+    'Arua', 'Mbale', 'Fort Portal', 'Hoima', 'Masaka', 'Soroti', 'Kasese',
+    'Iganga', 'Mityana', 'Luweero', 'Ntungamo', 'Rukungiri', 'Kabale', 'Tororo',
+    'Busia', 'Kiboga', 'Kyenjojo', 'Kamwenge', 'Bundibugyo', 'Ntoroko', 'Kyegegwa',
+  ];
+
+  // Tanzania regions list (official 31 regions)
+  const tanzaniaRegions = [
+    'Arusha', 'Dar es Salaam', 'Dodoma', 'Geita', 'Iringa', 'Kagera', 'Katavi',
+    'Kigoma', 'Kilimanjaro', 'Lindi', 'Manyara', 'Mara', 'Mbeya', 'Mjini Magharibi (Zanzibar)',
+    'Morogoro', 'Mtwara', 'Mwanza', 'Njombe', 'Pemba North', 'Pemba South', 'Pwani (Coast)',
+    'Rukwa', 'Ruvuma', 'Shinyanga', 'Simiyu', 'Singida', 'Songwe', 'Tabora', 'Tanga',
+    'Unguja North', 'Unguja South',
+  ];
+
+  // Rwanda provinces list
+  const rwandaProvinces = [
+    'Kigali', 'Northern', 'Southern', 'Eastern', 'Western',
+  ];
 
   const calculateDeliveryCost = useCallback(async () => {
-    if (!address.town || !address.country || orderValue <= 0) {
+    if (!address.county || !address.country || orderValue <= 0) {
       return;
     }
 
@@ -113,24 +118,55 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
     }
   }, [address, orderValue, onDeliveryCalculation]);
 
-  // Fetch towns when country changes
-  useEffect(() => {
-    if (address.country) {
-      fetchTowns(address.country);
-    }
-  }, [address.country]);
-
   // Calculate delivery cost when address or order value changes
   useEffect(() => {
-    if (address.country && address.town && orderValue > 0) {
+    if (address.country && address.county && orderValue > 0) {
       calculateDeliveryCost();
     }
-  }, [address, orderValue, calculateDeliveryCost]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address.country, address.county, orderValue]);
 
   const handleInputChange = (field: keyof DeliveryAddress, value: string) => {
     const newAddress = { ...address, [field]: value };
+    
+    // Reset county when country changes
+    if (field === 'country') {
+      newAddress.county = '';
+    }
+    
     setAddress(newAddress);
     onAddressChange(newAddress);
+  };
+
+  // Get counties/districts/regions based on selected country
+  const getCountiesForCountry = () => {
+    switch (address.country) {
+      case 'Kenya':
+        return kenyaCounties;
+      case 'Uganda':
+        return ugandaDistricts;
+      case 'Tanzania':
+        return tanzaniaRegions;
+      case 'Rwanda':
+        return rwandaProvinces;
+      default:
+        return [];
+    }
+  };
+
+  const getCountyLabel = () => {
+    switch (address.country) {
+      case 'Kenya':
+        return 'County';
+      case 'Uganda':
+        return 'District';
+      case 'Tanzania':
+        return 'Region';
+      case 'Rwanda':
+        return 'Province';
+      default:
+        return 'State/Province';
+    }
   };
 
   return (
@@ -158,28 +194,28 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
               value={address.country}
               onChange={(e) => handleInputChange('country', e.target.value)}
               className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              disabled
             >
-              <option value="Kenya">Kenya</option>
-              {/* Add more countries when expanding internationally */}
+              {countries.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
+              ))}
+              <option value="Other">Other (International)</option>
             </select>
-            <p className="text-xs text-primary-600 mt-1">
-              Currently serving Kenya only. International shipping coming soon.
-            </p>
           </div>
 
           {/* County/State */}
           <div>
             <label className="block text-sm font-medium text-primary-900 mb-2">
-              County/State *
+              {getCountyLabel()} *
             </label>
             <select
               value={address.county}
               onChange={(e) => handleInputChange('county', e.target.value)}
               className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="">Select County</option>
-              {kenyaCounties.map((county) => (
+              <option value="">Select {getCountyLabel()}</option>
+              {getCountiesForCountry().map((county) => (
                 <option key={county} value={county}>
                   {county}
                 </option>
@@ -187,30 +223,18 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
             </select>
           </div>
 
-          {/* Town/City */}
-          <div>
+          {/* Street Address */}
+          <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-primary-900 mb-2">
-              Town/City *
+              Street Address *
             </label>
-            {loadingTowns ? (
-              <div className="w-full px-4 py-2 border border-primary-200 rounded-lg flex items-center">
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                <span className="text-sm text-primary-600">Loading towns...</span>
-              </div>
-            ) : (
-              <select
-                value={address.town}
-                onChange={(e) => handleInputChange('town', e.target.value)}
-                className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">Select Town</option>
-                {availableTowns.map((town) => (
-                  <option key={town} value={town}>
-                    {town}
-                  </option>
-                ))}
-              </select>
-            )}
+            <input
+              type="text"
+              value={address.streetAddress}
+              onChange={(e) => handleInputChange('streetAddress', e.target.value)}
+              placeholder="Street address, building, house number, etc."
+              className="w-full px-4 py-2 border border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
           </div>
 
           {/* Postal Code (Optional) */}

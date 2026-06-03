@@ -14,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   googleLogin: (token: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -44,7 +44,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check for existing token on mount
-    const savedToken = localStorage.getItem('token');
+    // Check localStorage first (remember me), then sessionStorage
+    const savedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (savedToken) {
       setToken(savedToken);
       // Verify token and get user data
@@ -59,22 +60,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
       setToken(authToken);
-    } catch {
-      // Token is invalid, remove it
-      localStorage.removeItem('token');
-      setToken(null);
-      setUser(null);
+    } catch (error: unknown) {
+      // Only log out if we get a 401 Unauthorized response
+      // Other errors (network, server) should not log out the user
+      if (error && typeof error === 'object' && 'response' in error) {
+        const err = error as { response?: { status?: number } };
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+        }
+      }
+      // For other errors, keep the user logged in and use cached data if available
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe = false) => {
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token: authToken, user: userData } = response.data;
       
-      localStorage.setItem('token', authToken);
+      // Store token based on remember me preference
+      if (rememberMe) {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        sessionStorage.setItem('token', authToken);
+        localStorage.setItem('rememberMe', 'false');
+      }
+      
       setToken(authToken);
       setUser(userData);
     } catch (error) {
@@ -112,7 +128,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear token from both storage locations
     localStorage.removeItem('token');
+    localStorage.removeItem('rememberMe');
+    sessionStorage.removeItem('token');
     setToken(null);
     setUser(null);
   };

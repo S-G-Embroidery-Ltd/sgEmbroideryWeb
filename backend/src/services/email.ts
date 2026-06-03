@@ -82,16 +82,201 @@ export async function emailNewShopOrder(order: IOrder): Promise<void> {
 
 export async function emailOrderPaidReceipt(order: IOrder, paystackRef?: string): Promise<void> {
   const customerEmail = order.shippingAddress.email;
+  const customerName = order.shippingAddress.name;
   const ref = paystackRef || order.paymentId || '';
-  const text = `Thank you for your payment.\n\nOrder: ${order.orderNumber}\nTotal paid: KES ${order.total}\nReference: ${ref}\n\n${orderLinesText(order)}\n\nWe will process your order shortly.`;
+  
+  // Personalized HTML email for customer
+  const customerHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Payment Successful - Order ${order.orderNumber}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background: #f8f9fa; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 40px 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 32px; font-weight: 600; }
+        .content { padding: 40px 30px; }
+        .thank-you { font-size: 24px; color: #10b981; font-weight: 600; margin-bottom: 20px; }
+        .message { color: #555; margin-bottom: 30px; }
+        .order-details { background: #f8f9fa; border-radius: 8px; padding: 25px; margin-bottom: 30px; }
+        .order-details h3 { color: #10b981; margin: 0 0 15px 0; font-size: 18px; }
+        .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+        .item-row:last-child { border-bottom: none; }
+        .total-row { display: flex; justify-content: space-between; padding: 15px 0; border-top: 2px solid #10b981; font-weight: bold; font-size: 18px; }
+        .next-steps { background: #e8f5e8; border-left: 4px solid #4CAF50; padding: 20px; margin-bottom: 30px; }
+        .next-steps h4 { color: #2e7d32; margin: 0 0 10px 0; }
+        .footer { background: #f8f9fa; padding: 30px; text-align: center; color: #666; }
+        .contact-info { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin-bottom: 30px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Payment Successful!</h1>
+          <p>Thank you for your order</p>
+        </div>
+        <div class="content">
+          <div class="thank-you">Hi ${customerName},</div>
+          <div class="message">
+            Great news! Your payment has been successfully processed. We're excited to start working on your order and will have it ready for you soon.
+          </div>
+          
+          <div class="order-details">
+            <h3>📦 Order Details</h3>
+            <p><strong>Order Number:</strong> ${order.orderNumber}</p>
+            <p><strong>Payment Reference:</strong> ${ref}</p>
+            <p><strong>Total Paid:</strong> KES ${order.total.toLocaleString()}</p>
+            <div style="margin-top: 20px;">
+              ${order.items.map(item => `
+                <div class="item-row">
+                  <span>${item.name} x${item.quantity}</span>
+                  <span>KES ${(item.price * item.quantity).toLocaleString()}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div class="total-row">
+              <span>Total</span>
+              <span>KES ${order.total.toLocaleString()}</span>
+            </div>
+          </div>
+          
+          <div class="next-steps">
+            <h4>🚀 What Happens Next?</h4>
+            <ol style="margin: 0; padding-left: 20px;">
+              <li>We'll process your order immediately</li>
+              <li>You'll receive shipping confirmation once dispatched</li>
+              <li>Track your order status in your account</li>
+              <li>Estimated delivery: ${order.deliveryInfo?.estimatedDelivery || '3-5 business days'}</li>
+            </ol>
+          </div>
+          
+          <div class="contact-info">
+            <strong>📞 Need help?</strong><br>
+            Email: sgembroideryltd@gmail.com<br>
+            Phone: +254 710 422 557
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <p style="color: #10b981; font-weight: 600; font-size: 18px;">Thank you for choosing S&G Embroidery!</p>
+          </div>
+        </div>
+        <div class="footer">
+          <p><strong>S&G Embroidery</strong><br>
+          Professional Embroidery Services<br>
+          Quality • Precision • Style</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // Business notification email
+  const businessHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Paid Order - ${order.orderNumber}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background: #f8f9fa; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+        .content { padding: 30px; }
+        .info-grid { display: grid; grid-template-columns: 120px 1fr; gap: 15px; margin-bottom: 25px; }
+        .info-label { font-weight: 600; color: #666; font-size: 14px; }
+        .info-value { color: #333; }
+        .section { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .section h3 { margin: 0 0 15px 0; color: #10b981; font-size: 18px; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>💰 New Paid Order</h1>
+          <p>Order ${order.orderNumber} - Payment Confirmed</p>
+        </div>
+        <div class="content">
+          <div class="section">
+            <h3>👤 Customer Information</h3>
+            <div class="info-grid">
+              <div class="info-label">Name:</div>
+              <div class="info-value">${customerName}</div>
+              <div class="info-label">Email:</div>
+              <div class="info-value">${customerEmail}</div>
+              <div class="info-label">Phone:</div>
+              <div class="info-value">${order.shippingAddress.phone}</div>
+              <div class="info-label">Address:</div>
+              <div class="info-value">${order.shippingAddress.address}, ${order.shippingAddress.county}, ${order.shippingAddress.country}</div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h3>💳 Payment Details</h3>
+            <div class="info-grid">
+              <div class="info-label">Reference:</div>
+              <div class="info-value">${ref}</div>
+              <div class="info-label">Total:</div>
+              <div class="info-value">KES ${order.total.toLocaleString()}</div>
+              <div class="info-label">Payment:</div>
+              <div class="info-value">${order.paymentChannel.toUpperCase()}</div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h3>📦 Order Items</h3>
+            ${order.items.map(item => `
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                <span>${item.name} x${item.quantity}</span>
+                <span>KES ${(item.price * item.quantity).toLocaleString()}</span>
+              </div>
+            `).join('')}
+            <div style="display: flex; justify-content: space-between; padding: 15px 0; border-top: 2px solid #10b981; font-weight: bold;">
+              <span>Total</span>
+              <span>KES ${order.total.toLocaleString()}</span>
+            </div>
+          </div>
+          
+          ${order.deliveryInfo ? `
+          <div class="section">
+            <h3>🚚 Delivery Information</h3>
+            <div class="info-grid">
+              <div class="info-label">Zone:</div>
+              <div class="info-value">${order.deliveryInfo.zoneName}</div>
+              <div class="info-label">Shipping:</div>
+              <div class="info-value">KES ${order.deliveryInfo.finalCost.toLocaleString()}</div>
+              <div class="info-label">Est. Delivery:</div>
+              <div class="info-value">${order.deliveryInfo.estimatedDelivery}</div>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+        <div class="footer">
+          <p>S&G Embroidery - Order Management System</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // Send personalized email to customer
   await sendMailSafe({
     to: customerEmail,
-    subject: `Receipt — Order ${order.orderNumber}`,
-    text,
+    subject: `✅ Payment Successful - Order ${order.orderNumber}`,
+    html: customerHtml,
+    text: `Hi ${customerName},\n\nThank you for your payment!\n\nOrder: ${order.orderNumber}\nTotal paid: KES ${order.total}\nReference: ${ref}\n\n${orderLinesText(order)}\n\nWe will process your order shortly.`
   });
+
+  // Send detailed notification to business owner
   await notifyBusiness(
-    `Paid: ${order.orderNumber}`,
-    `Order ${order.orderNumber} marked paid.\nReference: ${ref}\nCustomer: ${customerEmail}\nTotal: KES ${order.total}`
+    `💰 Paid: ${order.orderNumber} - ${customerName}`,
+    `Order ${order.orderNumber} marked paid.\nReference: ${ref}\nCustomer: ${customerName} <${customerEmail}>\nPhone: ${order.shippingAddress.phone}\nTotal: KES ${order.total}\n\n${orderLinesText(order)}`,
+    businessHtml
   );
 }
 

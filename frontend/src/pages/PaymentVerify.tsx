@@ -1,17 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { paymentsAPI } from '../services/api';
 import { useCart } from '../hooks/useCart';
 
 const PaymentVerify = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { clearCart } = useCart();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'cancelled'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     const reference = searchParams.get('reference') || searchParams.get('trxref');
+    const cancelled = searchParams.get('cancelled');
+
+    // Handle explicit cancellation from Paystack
+    if (cancelled === 'true') {
+      setStatus('cancelled');
+      setMessage('Payment was cancelled. You can try again whenever you\'re ready.');
+      return;
+    }
 
     if (!reference) {
       setStatus('error');
@@ -19,35 +28,50 @@ const PaymentVerify = () => {
       return;
     }
 
-    let cancelled = false;
+    let isCancelled = false;
 
     (async () => {
       try {
+        console.log('Verifying payment with reference:', reference);
         const { data } = await paymentsAPI.verify(reference);
-        if (cancelled) return;
+        console.log('Verification response:', data);
+        
+        if (isCancelled) return;
+        
         if (data.status === 'success') {
           clearCart();
           setStatus('success');
           setMessage('Payment successful. Thank you for your order!');
+          
+          // Redirect to order details after 2 seconds
+          setTimeout(() => {
+            if (data.orderId) {
+              navigate(`/orders/${data.orderId}`, { replace: true });
+            } else {
+              navigate('/my-activity', { replace: true });
+            }
+          }, 2000);
         } else {
-          setStatus('error');
-          setMessage(`Payment status: ${data.status || 'unknown'}`);
+          // Handle failed or cancelled payments
+          setStatus('cancelled');
+          setMessage(`Payment ${data.status || 'was cancelled'}. No worries, you can try again.`);
         }
       } catch (err: unknown) {
-        if (cancelled) return;
+        console.error('Payment verification error:', err);
+        if (isCancelled) return;
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
             : null;
         setStatus('error');
-        setMessage(msg || 'Could not verify payment. Contact support with your Paystack reference.');
+        setMessage(msg || 'Payment verification failed. Please check your connection or try again.');
       }
     })();
 
     return () => {
-      cancelled = true;
+      isCancelled = true;
     };
-  }, [searchParams, clearCart]);
+  }, [searchParams, clearCart, navigate]);
 
   return (
     <div className="min-h-screen bg-primary-50 flex items-center justify-center px-4 py-16">
@@ -70,6 +94,25 @@ const PaymentVerify = () => {
                 View my activity
               </Link>
               <Link to="/shop" className="btn-outline">
+                Continue shopping
+              </Link>
+            </div>
+          </>
+        )}
+
+        {status === 'cancelled' && (
+          <>
+            <AlertCircle className="w-14 h-14 text-primary-600 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-primary-900 mb-2">Payment cancelled</h1>
+            <p className="text-primary-700 mb-6 text-sm">{message}</p>
+            <div className="flex flex-col gap-3">
+              <Link to="/checkout" className="btn-primary">
+                Try payment again
+              </Link>
+              <Link to="/cart" className="btn-outline">
+                Review your cart
+              </Link>
+              <Link to="/shop" className="text-sm text-primary-600 hover:text-primary-800 mt-2">
                 Continue shopping
               </Link>
             </div>

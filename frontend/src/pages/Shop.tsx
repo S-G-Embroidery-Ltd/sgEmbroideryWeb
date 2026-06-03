@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Heart, ShoppingCart, Star, Plus, Minus, Grid, List, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
@@ -528,42 +529,47 @@ const Shop = () => {
                       key={product.id}
                       className="bg-white rounded-2xl shadow-card border border-primary-100 overflow-hidden hover:shadow-float transition-all duration-300 group"
                     >
-                      <div className="relative aspect-square bg-primary-100 overflow-hidden">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt=""
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
-                            <span className="text-gray-500 text-sm">No Image</span>
-                          </div>
-                        )}
-                        {product.badge && (
-                          <div className="absolute top-3 left-3 bg-primary-600 text-white text-xs px-2 py-1 rounded-full font-medium z-10">
-                            {product.badge}
-                          </div>
-                        )}
-                        {!product.inStock && (
-                          <div className="absolute bottom-3 left-3 bg-primary-900/80 text-white text-xs px-2 py-1 rounded-full z-10">
-                            Out of stock
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => toggleFavorite(product.id)}
-                          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors z-10"
-                        >
-                          <Heart className={`w-4 h-4 ${isFavorite ? 'fill-accent-500 text-accent-500' : 'text-primary-700'}`} />
-                        </button>
-                      </div>
+                      <Link to={`/shop/${product.id}`} className="block">
+                        <div className="relative aspect-square bg-primary-100 overflow-hidden">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt=""
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                              <span className="text-gray-500 text-sm">No Image</span>
+                            </div>
+                          )}
+                          {product.badge && (
+                            <div className="absolute top-3 left-3 bg-primary-600 text-white text-xs px-2 py-1 rounded-full font-medium z-10">
+                              {product.badge}
+                            </div>
+                          )}
+                          {!product.inStock && (
+                            <div className="absolute bottom-3 left-3 bg-primary-900/80 text-white text-xs px-2 py-1 rounded-full z-10">
+                              Out of stock
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleFavorite(product.id);
+                            }}
+                            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors z-10"
+                          >
+                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-accent-500 text-accent-500' : 'text-primary-700'}`} />
+                          </button>
+                        </div>
+                      </Link>
 
                       <div className="p-4">
-                        <div className="mb-2">
-                          <h3 className="text-lg font-semibold text-primary-900 mb-1 line-clamp-1">{product.name}</h3>
+                        <Link to={`/shop/${product.id}`} className="block mb-2">
+                          <h3 className="text-lg font-semibold text-primary-900 mb-1 line-clamp-1 hover:text-primary-700 transition-colors">{product.name}</h3>
                           <p className="text-sm text-primary-700 line-clamp-2">{product.description}</p>
-                        </div>
+                        </Link>
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-2xl font-bold text-primary-900">KES {product.price.toLocaleString()}</span>
                         </div>
@@ -604,7 +610,7 @@ const Shop = () => {
                       className="bg-white rounded-2xl shadow-card border border-primary-100 p-4 hover:shadow-float transition-all duration-300"
                     >
                       <div className="flex flex-col sm:flex-row gap-4 min-w-0">
-                        <div className="w-full sm:w-32 h-32 bg-primary-100 rounded-xl overflow-hidden flex-shrink-0 relative">
+                        <Link to={`/shop/${product.id}`} className="w-full sm:w-32 h-32 bg-primary-100 rounded-xl overflow-hidden flex-shrink-0 relative">
                           {product.image ? (
                             <img src={product.image} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -612,11 +618,13 @@ const Shop = () => {
                               <span className="text-gray-500 text-sm">No Image</span>
                             </div>
                           )}
-                        </div>
+                        </Link>
                         <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-primary-900 mb-1">{product.name}</h3>
-                            <p className="text-sm text-primary-700 line-clamp-2">{product.description}</p>
+                            <Link to={`/shop/${product.id}`} className="block">
+                              <h3 className="text-lg font-semibold text-primary-900 mb-1 hover:text-primary-700 transition-colors">{product.name}</h3>
+                              <p className="text-sm text-primary-700 line-clamp-2">{product.description}</p>
+                            </Link>
                             <div className="flex items-center justify-between mt-3">
                               <span className="text-xl font-bold text-primary-900">KES {product.price.toLocaleString()}</span>
                               <button

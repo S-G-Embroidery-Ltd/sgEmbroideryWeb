@@ -19,6 +19,8 @@ interface CartContextType {
   clearCart: () => void;
   getCartCount: () => number;
   getCartTotal: () => number;
+  getCartVAT: () => number;
+  getCartSubtotal: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -76,6 +78,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
+  const getCartVAT = () => {
+    // VAT is 16% in Kenya, and prices include VAT
+    // VAT amount = Total * (16/116) = Total * 0.137931...
+    const total = getCartTotal();
+    return Math.round((total * 16 / 116) * 100) / 100;
+  };
+
+  const getCartSubtotal = () => {
+    // Subtotal = Total - VAT
+    const total = getCartTotal();
+    const vat = getCartVAT();
+    return Math.round((total - vat) * 100) / 100;
+  };
+
   return (
     <CartContext.Provider value={{
       cartItems,
@@ -84,7 +100,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       updateQuantity,
       clearCart,
       getCartCount,
-      getCartTotal
+      getCartTotal,
+      getCartVAT,
+      getCartSubtotal
     }}>
       {children}
     </CartContext.Provider>

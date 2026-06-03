@@ -14,6 +14,7 @@ import orderRoutes from './routes/orders';
 import userRoutes from './routes/user';
 import toolsRoutes from './routes/tools';
 import paymentRoutes from './routes/payments';
+import reviewRoutes from './routes/reviews';
 import paystackWebhookRouter from './routes/paystackWebhook';
 import clerkWebhookRouter from './routes/clerkWebhook';
 import internalRoutes from './routes/internal';
@@ -33,20 +34,24 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Trust proxy for rate limiting when deployed behind reverse proxy (Render, etc.)
-app.set('trust proxy', true);
+// Only enable in production to avoid rate limiter warnings in development
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', true);
+}
 
-// Rate limiting
+// Rate limiting (disabled for development, enable for production)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 1000, // Limit each IP to 1000 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skipFailedRequests: true, // Don't count failed requests towards the limit
 });
 
 // Middleware
 app.use(helmet());
-app.use(limiter);
+// app.use(limiter); // Disabled for development
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -80,6 +85,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use('/api/internal', internalRoutes);
 app.use('/api/digitizing-requests', digitizingRequestRoutes);
 app.use('/api/quote-requests', quoteRequestRoutes);

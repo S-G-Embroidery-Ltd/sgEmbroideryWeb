@@ -138,3 +138,8 @@ body {
     }
   }
 }
+
+/* Hide WhatsApp buttons when mobile menu is open */
+body.mobile-menu-open .fixed.bottom-6.right-6 {
+  display: none;
+}

@@ -11,6 +11,8 @@ export interface IProduct extends Document {
   inStock: boolean;
   featured: boolean;
   tags?: string[];
+  averageRating?: number;
+  reviewCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +66,17 @@ const productSchema = new Schema<IProduct>({
     type: String,
     trim: true,
   }],
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5,
+  },
+  reviewCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
 }, {
   timestamps: true,
 });

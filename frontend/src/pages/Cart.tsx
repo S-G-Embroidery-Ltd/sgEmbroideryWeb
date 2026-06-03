@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Plus, Minus, X, Trash2, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, X, Trash2, ArrowRight, Shield, CheckCircle, CreditCard } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
 
 const Cart = () => {
-  const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, clearCart, getCartTotal, getCartVAT, getCartSubtotal } = useCart();
 
   const handleRemoveItem = (id: string) => {
     removeFromCart(id);
@@ -13,10 +13,9 @@ const Cart = () => {
     clearCart();
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = subtotal * 0.16; // 16% tax
-  const shipping = subtotal > 5000 ? 0 : 300; // Free shipping over 5000
-  const total = subtotal + tax + shipping;
+  const total = getCartTotal();
+  const vat = getCartVAT();
+  const subtotal = getCartSubtotal();
 
   return (
     <div className="min-h-screen bg-primary-50 py-8">
@@ -157,20 +156,9 @@ const Cart = () => {
                     <span className="font-semibold">KES {subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-primary-700">Tax (16%)</span>
-                    <span className="font-semibold">KES {tax.toLocaleString()}</span>
+                    <span className="text-primary-700">VAT (16%)</span>
+                    <span className="font-semibold">KES {vat.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-primary-700">Shipping</span>
-                    <span className="font-semibold">
-                      {shipping === 0 ? 'FREE' : `KES ${shipping.toLocaleString()}`}
-                    </span>
-                  </div>
-                  {shipping > 0 && (
-                    <div className="text-sm text-primary-600 bg-primary-50 p-2 rounded-lg">
-                      Add KES {(5000 - subtotal).toLocaleString()} more for free shipping!
-                    </div>
-                  )}
                   <div className="border-t pt-4">
                     <div className="flex justify-between">
                       <span className="text-lg font-bold text-primary-900">Total</span>
@@ -218,10 +206,19 @@ const Cart = () => {
                 {/* Security Badge */}
                 <div className="mt-6 text-center">
                   <p className="text-sm text-primary-600 mb-2">Secure Checkout</p>
-                  <div className="flex justify-center space-x-2">
-                    <div className="w-12 h-8 bg-primary-200 rounded"></div>
-                    <div className="w-12 h-8 bg-primary-200 rounded"></div>
-                    <div className="w-12 h-8 bg-primary-200 rounded"></div>
+                  <div className="flex justify-center items-center gap-4 text-xs text-primary-600">
+                    <div className="flex items-center gap-1">
+                      <CreditCard className="w-4 h-4" />
+                      <span>Paystack</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Shield className="w-4 h-4" />
+                      <span>SSL Encrypted</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>PCI Compliant</span>
+                    </div>
                   </div>
                 </div>
               </div>

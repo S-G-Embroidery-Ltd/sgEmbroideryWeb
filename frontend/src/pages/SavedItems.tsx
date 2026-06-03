@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, X, Trash2, ArrowRight } from 'lucide-react';
+import { Heart, ShoppingCart, X, Trash2, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../hooks/useCart';
+import { userAPI } from '../services/api';
 
 type SavedItem = {
-  id: string;
+  _id: string;
   name: string;
   price: number;
-  image?: string;
-  category?: string;
-  description?: string;
-  savedAt: string;
+  images: string[];
+  category: string;
+  description: string;
+  inStock: boolean;
 };
 
 const SavedItems = () => {
@@ -24,13 +25,10 @@ const SavedItems = () => {
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    // Load saved items from localStorage (in a real app, this would come from an API)
-    const loadSavedItems = () => {
+    const loadSavedItems = async () => {
       try {
-        const saved = localStorage.getItem(`savedItems_${user.id}`);
-        if (saved) {
-          setSavedItems(JSON.parse(saved));
-        }
+        const response = await userAPI.getFavorites();
+        setSavedItems(response.data.favorites || []);
       } catch (error) {
         console.error('Error loading saved items:', error);
       } finally {
@@ -41,28 +39,29 @@ const SavedItems = () => {
     loadSavedItems();
   }, [user, isLoaded]);
 
-  const removeSavedItem = (itemId: string) => {
-    setSavedItems(prev => prev.filter(item => item.id !== itemId));
-    // Update localStorage
-    if (user) {
-      const updated = savedItems.filter(item => item.id !== itemId);
-      localStorage.setItem(`savedItems_${user.id}`, JSON.stringify(updated));
+  const removeSavedItem = async (itemId: string) => {
+    try {
+      await userAPI.removeFromFavorites(itemId);
+      setSavedItems(prev => prev.filter(item => item._id !== itemId));
+    } catch (error) {
+      console.error('Error removing saved item:', error);
     }
   };
 
   const addToCartFromSaved = (item: SavedItem) => {
+    const image = item.images?.[0] || '';
     addToCart({
-      id: item.id,
+      id: item._id,
       name: item.name,
       price: item.price,
       quantity: 1,
-      image: item.image
+      image
     });
   };
 
   const toggleSelection = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
+    setSelectedItems(prev =>
+      prev.includes(itemId)
         ? prev.filter(id => id !== itemId)
         : [...prev, itemId]
     );
@@ -70,7 +69,7 @@ const SavedItems = () => {
 
   const addSelectedToCart = () => {
     selectedItems.forEach(itemId => {
-      const item = savedItems.find(i => i.id === itemId);
+      const item = savedItems.find(i => i._id === itemId);
       if (item) {
         addToCartFromSaved(item);
       }
@@ -78,15 +77,15 @@ const SavedItems = () => {
     setSelectedItems([]);
   };
 
-  const removeSelected = () => {
-    selectedItems.forEach(itemId => {
-      removeSavedItem(itemId);
-    });
+  const removeSelected = async () => {
+    for (const itemId of selectedItems) {
+      await removeSavedItem(itemId);
+    }
     setSelectedItems([]);
   };
 
   const selectAll = () => {
-    setSelectedItems(savedItems.map(item => item.id));
+    setSelectedItems(savedItems.map(item => item._id));
   };
 
   const clearSelection = () => {
@@ -96,7 +95,7 @@ const SavedItems = () => {
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
       </div>
     );
   }
@@ -189,24 +188,24 @@ const SavedItems = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {savedItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl border border-primary-100 shadow-card hover:shadow-lg transition-shadow">
+              <div key={item._id} className="bg-white rounded-2xl border border-primary-100 shadow-card hover:shadow-lg transition-shadow">
                 <div className="relative">
                   <input
                     type="checkbox"
-                    checked={selectedItems.includes(item.id)}
-                    onChange={() => toggleSelection(item.id)}
+                    checked={selectedItems.includes(item._id)}
+                    onChange={() => toggleSelection(item._id)}
                     className="absolute top-3 left-3 z-10 w-5 h-5 text-primary-600 border-primary-300 rounded focus:ring-primary-500"
                   />
                   <button
-                    onClick={() => removeSavedItem(item.id)}
+                    onClick={() => removeSavedItem(item._id)}
                     className="absolute top-3 right-3 z-10 p-2 bg-white/90 backdrop-blur-sm rounded-full text-primary-600 hover:text-red-600 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
                   <div className="aspect-square bg-surface-muted rounded-t-2xl overflow-hidden">
-                    {item.image ? (
-                      <img 
-                        src={item.image} 
+                    {item.images && item.images.length > 0 ? (
+                      <img
+                        src={item.images[0]}
                         alt={item.name}
                         className="w-full h-full object-cover"
                       />
@@ -223,7 +222,7 @@ const SavedItems = () => {
                     <p className="text-sm text-primary-600 mb-2">{item.category}</p>
                   )}
                   <p className="text-lg font-bold text-primary-900 mb-3">
-                    ${item.price.toLocaleString()}
+                    KES {item.price.toLocaleString()}
                   </p>
                   <button
                     onClick={() => addToCartFromSaved(item)}

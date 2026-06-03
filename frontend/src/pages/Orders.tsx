@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Calendar, DollarSign, ArrowRight, Search } from 'lucide-react';
+import { Package, Calendar, DollarSign, ArrowRight, Search, CheckCircle, Star, AlertCircle, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ordersAPI } from '../services/api';
 
@@ -12,8 +12,10 @@ type Order = {
   status: string;
   paymentStatus: string;
   createdAt: string;
-  items?: Array<{ name: string; quantity: number; price: number }>;
+  items?: Array<{ name: string; quantity: number; price: number; productId?: string }>;
   digitizing?: { originalFileName?: string };
+  deliveryConfirmedAt?: string;
+  reviewSubmitted?: string[];
 };
 
 const Orders = () => {
@@ -23,6 +25,26 @@ const Orders = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [confirmingDelivery, setConfirmingDelivery] = useState<string | null>(null);
+  const [pendingPage, setPendingPage] = useState(1);
+  const [paidPage, setPaidPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const handleConfirmDelivery = async (orderId: string) => {
+    try {
+      setConfirmingDelivery(orderId);
+      await ordersAPI.confirmDelivery(orderId);
+      // Refresh orders
+      const response = await ordersAPI.getMyOrders({ limit: 100 });
+      setOrders(response.data.orders || []);
+    } catch (err) {
+      console.error('Error confirming delivery:', err);
+      setError('Failed to confirm delivery');
+    } finally {
+      setConfirmingDelivery(null);
+    }
+  };
 
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -47,8 +69,31 @@ const Orders = () => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.items?.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesPayment = paymentFilter === 'all' || order.paymentStatus === paymentFilter;
+    return matchesSearch && matchesStatus && matchesPayment;
   });
+
+  // Group orders by payment status
+  const pendingPaymentOrders = filteredOrders.filter(order => order.paymentStatus === 'pending');
+  const paidOrders = filteredOrders.filter(order => order.paymentStatus === 'paid');
+
+  // Pagination for pending payment orders
+  const pendingTotalPages = Math.ceil(pendingPaymentOrders.length / itemsPerPage);
+  const pendingStartIndex = (pendingPage - 1) * itemsPerPage;
+  const pendingEndIndex = pendingStartIndex + itemsPerPage;
+  const paginatedPendingOrders = pendingPaymentOrders.slice(pendingStartIndex, pendingEndIndex);
+
+  // Pagination for paid orders
+  const paidTotalPages = Math.ceil(paidOrders.length / itemsPerPage);
+  const paidStartIndex = (paidPage - 1) * itemsPerPage;
+  const paidEndIndex = paidStartIndex + itemsPerPage;
+  const paginatedPaidOrders = paidOrders.slice(paidStartIndex, paidEndIndex);
+
+  // Reset pages when filters change
+  useEffect(() => {
+    setPendingPage(1);
+    setPaidPage(1);
+  }, [searchTerm, statusFilter, paymentFilter]);
 
   function paymentStatusLabel(status: string): string {
     if (status === 'awaiting_manual_confirmation') return 'Awaiting M-Pesa verification';
@@ -136,6 +181,21 @@ const Orders = () => {
                 </button>
               ))}
             </div>
+            <div className="flex gap-2">
+              {['all', 'paid', 'pending'].map((status) => (
+                <button
+                  key={`payment-${status}`}
+                  onClick={() => setPaymentFilter(status)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    paymentFilter === status
+                      ? 'bg-secondary-500 text-primary-900'
+                      : 'bg-surface text-primary-800 hover:bg-primary-50'
+                  }`}
+                >
+                  {status === 'all' ? 'All Payments' : status === 'paid' ? 'Paid' : 'Pending Payment'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -166,65 +226,251 @@ const Orders = () => {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredOrders.map((order) => (
-              <div key={order._id} className="bg-white rounded-2xl border border-primary-100 shadow-card p-6 hover:shadow-lg transition-shadow">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                      <h3 className="font-semibold text-primary-900">{order.orderNumber}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                        {paymentStatusLabel(order.paymentStatus)}
-                      </span>
-                    </div>
-                    
-                    <p className="text-sm text-primary-600 mb-2">
-                      <Calendar className="w-4 h-4 inline mr-1" />
-                      {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-                    </p>
-
-                    {order.items && order.items.length > 0 && (
-                      <div className="mb-2">
-                        <p className="text-sm font-medium text-primary-800 mb-1">Items:</p>
-                        <div className="text-sm text-primary-600">
-                          {order.items.map((item, index) => (
-                            <span key={index}>
-                              {item.name} × {item.quantity}
-                              {index < order.items!.length - 1 && ' • '}
+          <div className="space-y-8">
+            {/* Pending Payment Section */}
+            {pendingPaymentOrders.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-primary-900 mb-4 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2 text-yellow-600" />
+                  Pending Payment ({pendingPaymentOrders.length})
+                </h2>
+                <div className="space-y-4">
+                  {paginatedPendingOrders.map((order) => (
+                    <div key={order._id} className="bg-white rounded-2xl border border-yellow-200 shadow-card p-6 hover:shadow-lg transition-shadow">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                            <h3 className="font-semibold text-primary-900">{order.orderNumber}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                              {order.status}
                             </span>
-                          ))}
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
+                              {paymentStatusLabel(order.paymentStatus)}
+                            </span>
+                          </div>
+                          
+                          <p className="text-sm text-primary-600 mb-2">
+                            <Calendar className="w-4 h-4 inline mr-1" />
+                            {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                          </p>
+
+                          {order.items && order.items.length > 0 && (
+                            <div className="mb-2">
+                              <p className="text-sm font-medium text-primary-800 mb-1">Items:</p>
+                              <div className="text-sm text-primary-600">
+                                {order.items.map((item, index) => (
+                                  <span key={index}>
+                                    {item.name} × {item.quantity}
+                                    {index < order.items!.length - 1 && ' • '}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {order.digitizing?.originalFileName && (
+                            <p className="text-sm text-primary-600">
+                              File: {order.digitizing.originalFileName}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm text-primary-600">Total</p>
+                            <p className="text-xl font-bold text-primary-900">
+                              <DollarSign className="w-5 h-5 inline" />
+                              {order.total.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Link
+                              to={`/orders/${order._id}`}
+                              className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white font-medium rounded-xl hover:bg-yellow-700 transition-colors"
+                            >
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Complete Payment
+                            </Link>
+                            <Link
+                              to={`/orders/${order._id}`}
+                              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
+                            >
+                              View Details
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                    )}
-
-                    {order.digitizing?.originalFileName && (
-                      <p className="text-sm text-primary-600">
-                        File: {order.digitizing.originalFileName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm text-primary-600">Total</p>
-                      <p className="text-xl font-bold text-primary-900">
-                        <DollarSign className="w-5 h-5 inline" />
-                        {order.total.toLocaleString()}
-                      </p>
                     </div>
-                    <Link
-                      to={`/orders/${order._id}`}
-                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
-                    >
-                      View Details
-                    </Link>
-                  </div>
+                  ))}
                 </div>
+                {pendingTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-primary-200">
+                    <p className="text-sm text-primary-600">
+                      Showing {pendingStartIndex + 1} to {Math.min(pendingEndIndex, pendingPaymentOrders.length)} of {pendingPaymentOrders.length} orders
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPendingPage(p => Math.max(1, p - 1))}
+                        disabled={pendingPage === 1}
+                        className="inline-flex items-center px-3 py-2 rounded-lg border border-primary-200 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </button>
+                      <span className="text-sm text-primary-700">
+                        Page {pendingPage} of {pendingTotalPages}
+                      </span>
+                      <button
+                        onClick={() => setPendingPage(p => Math.min(pendingTotalPages, p + 1))}
+                        disabled={pendingPage === pendingTotalPages}
+                        className="inline-flex items-center px-3 py-2 rounded-lg border border-primary-200 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+            )}
+
+            {/* Completed Payment Section */}
+            {paidOrders.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-primary-900 mb-4 flex items-center">
+                  <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+                  Completed Payment ({paidOrders.length})
+                </h2>
+                <div className="space-y-4">
+                  {paginatedPaidOrders.map((order) => (
+                    <div key={order._id} className="bg-white rounded-2xl border border-primary-100 shadow-card p-6 hover:shadow-lg transition-shadow">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                            <h3 className="font-semibold text-primary-900">{order.orderNumber}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                              {order.status}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
+                              {paymentStatusLabel(order.paymentStatus)}
+                            </span>
+                          </div>
+                          
+                          <p className="text-sm text-primary-600 mb-2">
+                            <Calendar className="w-4 h-4 inline mr-1" />
+                            {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                          </p>
+
+                          {order.items && order.items.length > 0 && (
+                            <div className="mb-2">
+                              <p className="text-sm font-medium text-primary-800 mb-1">Items:</p>
+                              <div className="text-sm text-primary-600">
+                                {order.items.map((item, index) => (
+                                  <span key={index}>
+                                    {item.name} × {item.quantity}
+                                    {index < order.items!.length - 1 && ' • '}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {order.digitizing?.originalFileName && (
+                            <p className="text-sm text-primary-600">
+                              File: {order.digitizing.originalFileName}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm text-primary-600">Total</p>
+                            <p className="text-xl font-bold text-primary-900">
+                              <DollarSign className="w-5 h-5 inline" />
+                              {order.total.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            {order.status === 'delivered' && !order.deliveryConfirmedAt && (
+                              <button
+                                onClick={() => handleConfirmDelivery(order._id)}
+                                disabled={confirmingDelivery === order._id}
+                                className="inline-flex items-center px-4 py-2 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                {confirmingDelivery === order._id ? 'Confirming...' : 'Confirm Delivery'}
+                              </button>
+                            )}
+                            {order.status === 'delivered' && order.items && order.items.length > 0 && (
+                              <Link
+                                to={`/orders/${order._id}/review`}
+                                className="inline-flex items-center px-4 py-2 bg-secondary-500 text-primary-900 font-medium rounded-xl hover:bg-secondary-600 transition-colors"
+                              >
+                                <Star className="w-4 h-4 mr-2" />
+                                Write Review
+                              </Link>
+                            )}
+                            <Link
+                              to={`/orders/${order._id}`}
+                              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
+                            >
+                              View Details
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {paidTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-primary-200">
+                    <p className="text-sm text-primary-600">
+                      Showing {paidStartIndex + 1} to {Math.min(paidEndIndex, paidOrders.length)} of {paidOrders.length} orders
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPaidPage(p => Math.max(1, p - 1))}
+                        disabled={paidPage === 1}
+                        className="inline-flex items-center px-3 py-2 rounded-lg border border-primary-200 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </button>
+                      <span className="text-sm text-primary-700">
+                        Page {paidPage} of {paidTotalPages}
+                      </span>
+                      <button
+                        onClick={() => setPaidPage(p => Math.min(paidTotalPages, p + 1))}
+                        disabled={paidPage === paidTotalPages}
+                        className="inline-flex items-center px-3 py-2 rounded-lg border border-primary-200 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {pendingPaymentOrders.length === 0 && paidOrders.length === 0 && (
+              <div className="bg-white rounded-2xl border border-primary-100 shadow-card p-12 text-center">
+                <Package className="w-16 h-16 text-primary-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-primary-900 mb-2">No orders found</h3>
+                <p className="text-primary-600 mb-6">
+                  {searchTerm || statusFilter !== 'all' || paymentFilter !== 'all' 
+                    ? 'Try adjusting your filters or search terms.'
+                    : 'When you place orders, they will appear here.'
+                  }
+                </p>
+                <Link 
+                  to="/shop" 
+                  className="inline-flex items-center px-6 py-3 bg-secondary-500 text-primary-900 font-medium rounded-xl hover:bg-secondary-600 transition-colors"
+                >
+                  Start Shopping <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

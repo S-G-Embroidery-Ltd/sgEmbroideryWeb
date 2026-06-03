@@ -1,7 +1,13 @@
-import DeliveryZone, { IDeliveryZone } from '../models/DeliveryZone';
+import ShippingFeeEngine, { ShippingFeeRequest, ShippingFeeResponse } from './shippingFeeEngine';
 
 export interface DeliveryCalculation {
-  zone: IDeliveryZone | null;
+  zone: {
+    zoneId: string;
+    name: string;
+    basePrice: number;
+    estimatedDays: number;
+    country: string;
+  };
   price: number;
   estimatedDelivery: string;
   freeShipping: boolean;
@@ -10,8 +16,7 @@ export interface DeliveryCalculation {
 
 export interface DeliveryAddress {
   country: string;
-  county?: string;
-  town: string;
+  county: string;
   postalCode?: string;
 }
 
@@ -31,38 +36,45 @@ class DeliveryService {
 
   /**
    * Calculate delivery cost based on address and order value
+   * Uses the new shipping fee engine for deterministic pricing
    */
   static async calculateDelivery(request: DeliveryQuoteRequest): Promise<DeliveryQuoteResponse> {
     try {
       const { address, orderValue } = request;
 
       // Validate address
-      if (!address.town || !address.country) {
+      if (!address.county || !address.country) {
         return {
           success: false,
-          error: 'Town and country are required for delivery calculation',
+          error: 'County and country are required for delivery calculation',
         };
       }
 
-      // Find delivery zone for the town
-      const zone = await this.findZoneForTown(address.town, address.country);
-      
-      if (!zone) {
-        return {
-          success: false,
-          error: `No delivery zone found for ${address.town}, ${address.country}`,
-        };
-      }
+      // Use the shipping fee engine to calculate cost
+      const shippingRequest: ShippingFeeRequest = {
+        country: address.country,
+        county: address.county,
+      };
 
-      // Calculate delivery cost
-      const basePrice = zone.basePrice;
+      const shippingResult = ShippingFeeEngine.calculateShippingFee(shippingRequest);
+
+      // Apply free shipping threshold
       const isFreeShipping = orderValue >= this.FREE_SHIPPING_THRESHOLD;
-      const finalPrice = isFreeShipping ? 0 : basePrice;
+      const finalPrice = isFreeShipping ? 0 : shippingResult.delivery_fee;
+
+      // Parse estimated days to get numeric value
+      const estimatedDays = this.parseEstimatedDays(shippingResult.estimated_days);
 
       const calculation: DeliveryCalculation = {
-        zone,
+        zone: {
+          zoneId: shippingResult.delivery_zone.replace(/\s+/g, '_').toUpperCase(),
+          name: shippingResult.delivery_zone,
+          basePrice: shippingResult.delivery_fee,
+          estimatedDays,
+          country: shippingResult.country,
+        },
         price: finalPrice,
-        estimatedDelivery: this.getEstimatedDeliveryText(zone.estimatedDays),
+        estimatedDelivery: shippingResult.estimated_days,
         freeShipping: isFreeShipping,
       };
 
@@ -80,197 +92,116 @@ class DeliveryService {
   }
 
   /**
-   * Find delivery zone for a specific town
+   * Parse estimated days string to get numeric value
    */
-  private static async findZoneForTown(town: string, country: string): Promise<IDeliveryZone | null> {
-    try {
-      // Normalize town name for comparison
-      const normalizedTown = town.toLowerCase().trim();
-      
-      // Find zone where town matches (case-insensitive)
-      const zone = await DeliveryZone.findOne({
-        country: country,
-        towns: { $regex: new RegExp(`^${normalizedTown}$`, 'i') },
+  private static parseEstimatedDays(estimatedDays: string): number {
+    const match = estimatedDays.match(/(\d+)/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (estimatedDays.includes('–') || estimatedDays.includes('-')) {
+        // Return the upper bound for range
+        const parts = estimatedDays.split(/–|-/);
+        if (parts.length === 2) {
+          const upper = parseInt(parts[1].match(/(\d+)/)?.[1] || '0', 10);
+          return upper || num;
+        }
+      }
+      return num;
+    }
+    return 5; // Default to 5 days
+  }
+
+  /**
+   * Get all available delivery zones (static data from shipping engine)
+   */
+  static async getAllZones(): Promise<any[]> {
+    // Return static zone information based on the shipping fee engine
+    const countries = ShippingFeeEngine.getSupportedCountries();
+    const zones: any[] = [];
+
+    countries.forEach(country => {
+      zones.push({
+        zoneId: country.toUpperCase(),
+        name: country,
+        basePrice: 0, // Will be calculated dynamically
+        estimatedDays: 0,
+        country,
         isActive: true,
       });
+    });
 
-      return zone;
-    } catch (error) {
-      console.error('Error finding delivery zone:', error);
-      return null;
-    }
+    // Add international zone
+    zones.push({
+      zoneId: 'INTERNATIONAL',
+      name: 'International',
+      basePrice: 1200,
+      estimatedDays: 21,
+      country: 'International',
+      isActive: true,
+    });
+
+    return zones;
   }
 
   /**
-   * Get human-readable estimated delivery text
+   * Get zones by country (static data from shipping engine)
    */
-  private static getEstimatedDeliveryText(days: number): string {
-    if (days === 1) {
-      return '1 business day';
-    } else if (days <= 3) {
-      return `${days} business days`;
-    } else if (days <= 7) {
-      return `${days} business days`;
-    } else {
-      return `${days} business days (remote area)`;
-    }
+  static async getZonesByCountry(country: string): Promise<any[]> {
+    const zones = await this.getAllZones();
+    return zones.filter(zone => zone.country === country);
   }
 
   /**
-   * Get all available delivery zones
-   */
-  static async getAllZones(): Promise<IDeliveryZone[]> {
-    try {
-      return await DeliveryZone.find({ isActive: true }).sort({ zoneId: 1 });
-    } catch (error) {
-      console.error('Error fetching delivery zones:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get zones by country
-   */
-  static async getZonesByCountry(country: string): Promise<IDeliveryZone[]> {
-    try {
-      return await DeliveryZone.find({ 
-        country: country, 
-        isActive: true 
-      }).sort({ zoneId: 1 });
-    } catch (error) {
-      console.error('Error fetching delivery zones by country:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get all unique towns from active zones
+   * Get all unique towns for a country (static list)
    */
   static async getAllTowns(country?: string): Promise<string[]> {
-    try {
-      const query: any = { isActive: true };
-      if (country) {
-        query.country = country;
-      }
+    // Return a comprehensive list of towns for supported countries
+    const townsByCountry: Record<string, string[]> = {
+      kenya: [
+        'Mombasa', 'Kilifi', 'Kwale', 'Malindi', 'Nairobi', 'Kisumu', 'Nakuru', 'Eldoret',
+        'Thika', 'Athi River', 'Meru', 'Kakamega', 'Kitale', 'Bungoma', 'Moyale', 'Garissa',
+        'Lodwar', 'Marsabit', 'Wajir', 'Lamu', 'Nyeri', 'Kiambu', 'Muranga', 'Kirinyaga',
+        'Nyandarua', 'Machakos', 'Makueni', 'Kajiado', 'Embu', 'Tharaka Nithi', 'Kitui',
+        'Isiolo', 'Turkana', 'West Pokot', 'Samburu', 'Trans Nzoia', 'Uasin Gishu',
+        'Elgeyo Marakwet', 'Nandi', 'Baringo', 'Laikipia', 'Narok', 'Bomet', 'Kakamega',
+        'Vihiga', 'Busia', 'Siaya', 'Homa Bay', 'Migori', 'Kisii', 'Nyamira', 'Taita Taveta',
+        'Tana River', 'Garissa', 'Wajir', 'Mandera', 'Marsabit', 'Isiolo',
+      ],
+      uganda: [
+        'Kampala', 'Entebbe', 'Jinja', 'Gulu', 'Mbarara', 'Mbale', 'Arua', 'Lira',
+        'Fort Portal', 'Hoima', 'Masaka', 'Soroti', 'Kasese', 'Mbale', 'Gulu',
+      ],
+      tanzania: [
+        'Dar es Salaam', 'Mwanza', 'Arusha', 'Dodoma', 'Tanga', 'Morogoro', 'Zanzibar',
+        'Kigoma', 'Tabora', 'Iringa', 'Mbeya', 'Songea', 'Lindi', 'Mtwara', 'Bukoba',
+        'Musoma', 'Shinyanga', 'Singida', 'Sumbawanga',
+      ],
+      rwanda: [
+        'Kigali', 'Butare', 'Gitarama', 'Ruhengeri', 'Gisenyi', 'Kibuye', 'Cyangugu',
+        'Byumba', 'Kibungo', 'Rwamagana',
+      ],
+    };
 
-      const zones = await DeliveryZone.find(query);
-      const towns = new Set<string>();
-      
-      zones.forEach(zone => {
-        zone.towns.forEach(town => towns.add(town));
-      });
-
-      return Array.from(towns).sort();
-    } catch (error) {
-      console.error('Error fetching all towns:', error);
-      return [];
+    if (country) {
+      const normalizedCountry = country.toLowerCase();
+      return townsByCountry[normalizedCountry] || [];
     }
+
+    // Return all towns if no country specified
+    return Object.values(townsByCountry).flat();
   }
 
   /**
-   * Get towns by county (if we implement county mapping)
+   * Get towns by county (simplified implementation)
    */
   static async getTownsByCounty(county: string, country: string): Promise<string[]> {
-    try {
-      // For now, return all towns for the country
-      // In future, we can implement county-town mapping
-      const allTowns = await this.getAllTowns(country);
-      
-      // Simple county matching based on town names (can be enhanced)
-      return allTowns.filter(town => 
-        town.toLowerCase().includes(county.toLowerCase()) ||
-        county.toLowerCase().includes(town.toLowerCase())
-      );
-    } catch (error) {
-      console.error('Error fetching towns by county:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Initialize default delivery zones for Kenya
-   */
-  static async initializeKenyaZones(): Promise<void> {
-    try {
-      const existingZones = await DeliveryZone.countDocuments({ country: 'Kenya' });
-      if (existingZones > 0) {
-        console.log('Kenya delivery zones already initialized');
-        return;
-      }
-
-      const kenyaZones = [
-        {
-          zoneId: 'ZONE_1',
-          name: 'Mombasa Local',
-          towns: ['Kongowea', 'Mombasa CBD', 'Nyali', 'Mombasa Island', 'Diani'],
-          basePrice: 150,
-          estimatedDays: 1,
-          country: 'Kenya',
-        },
-        {
-          zoneId: 'ZONE_2',
-          name: 'Coastal Region',
-          towns: ['Kilifi', 'Malindi', 'Watamu', 'Voi'],
-          basePrice: 250,
-          estimatedDays: 2,
-          country: 'Kenya',
-        },
-        {
-          zoneId: 'ZONE_3',
-          name: 'Nairobi Region',
-          towns: ['Nairobi CBD', 'Nairobi', 'Thika', 'Athi River'],
-          basePrice: 400,
-          estimatedDays: 2,
-          country: 'Kenya',
-        },
-        {
-          zoneId: 'ZONE_4',
-          name: 'Major Towns',
-          towns: ['Kisumu', 'Nakuru', 'Eldoret', 'Meru', 'Kakamega'],
-          basePrice: 550,
-          estimatedDays: 3,
-          country: 'Kenya',
-        },
-        {
-          zoneId: 'ZONE_5',
-          name: 'Other Major Towns',
-          towns: ['Kitale', 'Bungoma', 'Moyale', 'Garissa'],
-          basePrice: 650,
-          estimatedDays: 4,
-          country: 'Kenya',
-        },
-        {
-          zoneId: 'ZONE_6',
-          name: 'Remote Areas',
-          towns: ['Lodwar', 'Marsabit', 'Wajir', 'Lamu'],
-          basePrice: 850,
-          estimatedDays: 5,
-          country: 'Kenya',
-        },
-      ];
-
-      await DeliveryZone.insertMany(kenyaZones);
-      console.log('Kenya delivery zones initialized successfully');
-    } catch (error) {
-      console.error('Error initializing Kenya delivery zones:', error);
-    }
-  }
-
-  /**
-   * Update delivery zone pricing (admin function)
-   */
-  static async updateZonePricing(zoneId: string, newPrice: number): Promise<boolean> {
-    try {
-      const result = await DeliveryZone.updateOne(
-        { zoneId },
-        { basePrice: newPrice }
-      );
-      
-      return result.modifiedCount > 0;
-    } catch (error) {
-      console.error('Error updating zone pricing:', error);
-      return false;
-    }
+    const allTowns = await this.getAllTowns(country);
+    
+    // Simple county matching based on town names
+    return allTowns.filter(town => 
+      town.toLowerCase().includes(county.toLowerCase()) ||
+      county.toLowerCase().includes(town.toLowerCase())
+    );
   }
 }
 

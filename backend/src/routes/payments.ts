@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth';
 import Order from '../models/Order';
 import { getPrimarySiteUrl } from '../utils/corsOrigins';
 import { markOrderPaidFromPaystack } from '../services/orderPayment';
+import PaymentService from '../services/paymentService';
 
 const router = express.Router();
 
@@ -166,6 +167,133 @@ router.post('/verify', async (req, res) => {
       amount: paymentData.amount != null ? paymentData.amount / 100 : undefined,
       paidAt: paymentData.paid_at,
       orderId: orderId ? String(orderId) : undefined,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get payment history for authenticated user
+router.get('/history', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { limit, skip, status, startDate, endDate } = req.query;
+
+    const options: any = {
+      limit: limit ? parseInt(limit as string) : 20,
+      skip: skip ? parseInt(skip as string) : 0,
+    };
+
+    if (status) {
+      options.status = status;
+    }
+
+    if (startDate) {
+      options.startDate = new Date(startDate as string);
+    }
+
+    if (endDate) {
+      options.endDate = new Date(endDate as string);
+    }
+
+    const result = await PaymentService.getPaymentHistory(req.user.userId, options);
+
+    res.json({
+      success: true,
+      data: result.payments,
+      total: result.total,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get payment analytics (admin only)
+router.get('/analytics', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // TODO: Add admin role check here
+    const { startDate, endDate } = req.query;
+
+    const options: any = {};
+    if (startDate) {
+      options.startDate = new Date(startDate as string);
+    }
+    if (endDate) {
+      options.endDate = new Date(endDate as string);
+    }
+
+    const analytics = await PaymentService.getPaymentAnalytics(options);
+
+    res.json({
+      success: true,
+      data: analytics,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get payment details
+router.get('/:paymentId', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { paymentId } = req.params;
+    const paymentIdStr = Array.isArray(paymentId) ? paymentId[0] : paymentId;
+    const payment = await PaymentService.getPaymentDetails(paymentIdStr);
+
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    // Ensure user can only view their own payments
+    if (payment.userId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json({
+      success: true,
+      data: payment,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Process refund (admin only)
+router.post('/:paymentId/refund', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // TODO: Add admin role check here
+    const { paymentId } = req.params;
+    const paymentIdStr = Array.isArray(paymentId) ? paymentId[0] : paymentId;
+    const { refundAmount, refundReason } = req.body;
+
+    if (!refundAmount || !refundReason) {
+      return res.status(400).json({ message: 'Refund amount and reason are required' });
+    }
+
+    const result = await PaymentService.processRefund(paymentIdStr, {
+      refundAmount,
+      refundReason,
+      refundedBy: req.user.userId,
+    });
+
+    res.json({
+      success: true,
+      data: result,
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

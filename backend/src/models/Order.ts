@@ -28,8 +28,7 @@ export interface IOrderDigitizing {
 export interface IOrderDeliveryInfo {
   zone: string;
   zoneName: string;
-  town: string;
-  county?: string;
+  county: string;
   baseCost: number;
   finalCost: number;
   estimatedDays: number;
@@ -61,13 +60,16 @@ export interface IOrder extends Document {
   paidAt?: Date;
   paystackAmount?: number;
   receiptEmailedAt?: Date;
+  deliveredAt?: Date;
+  deliveryConfirmedAt?: Date;
+  reviewSubmitted?: string[]; // Array of product IDs that have been reviewed
   shippingAddress: {
     name: string;
     email: string;
     phone: string;
     address: string;
-    city: string;
     country: string;
+    county: string;
     postalCode: string;
   };
   deliveryInfo?: IOrderDeliveryInfo;
@@ -132,8 +134,7 @@ const deliveryInfoSchema = new Schema<IOrderDeliveryInfo>(
   {
     zone: { type: String, required: true, trim: true },
     zoneName: { type: String, required: true, trim: true },
-    town: { type: String, required: true, trim: true },
-    county: { type: String, trim: true },
+    county: { type: String, required: true, trim: true },
     baseCost: { type: Number, required: true, min: 0 },
     finalCost: { type: Number, required: true, min: 0 },
     estimatedDays: { type: Number, required: true, min: 1 },
@@ -213,6 +214,9 @@ const orderSchema = new Schema<IOrder>({
   paidAt: { type: Date },
   paystackAmount: { type: Number },
   receiptEmailedAt: { type: Date },
+  deliveredAt: { type: Date },
+  deliveryConfirmedAt: { type: Date },
+  reviewSubmitted: [{ type: String }], // Array of product IDs that have been reviewed
   shippingAddress: {
     name: {
       type: String,
@@ -235,26 +239,24 @@ const orderSchema = new Schema<IOrder>({
       required: [true, 'Address is required'],
       trim: true,
     },
-    city: {
-      type: String,
-      required: [true, 'City is required'],
-      trim: true,
-    },
     country: {
       type: String,
       required: [true, 'Country is required'],
       trim: true,
     },
+    county: {
+      type: String,
+      required: [true, 'County is required'],
+      trim: true,
+    },
     postalCode: {
       type: String,
-      required: [true, 'Postal code is required'],
       trim: true,
     },
   },
   orderNumber: {
     type: String,
     unique: true,
-    required: true,
   },
 }, {
   timestamps: true,

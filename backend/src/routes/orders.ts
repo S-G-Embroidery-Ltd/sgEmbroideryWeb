@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Order from '../models/Order';
 import { authMiddleware } from '../middleware/auth';
 import { emailNewShopOrder, emailMpesaCodeSubmitted } from '../services/email';
+import Review from '../models/Review';
 
 const router = express.Router();
 
@@ -11,19 +12,23 @@ const FREE_SHIPPING_THRESHOLD = 5000;
 const STANDARD_SHIPPING = 300;
 
 function computeOrderAmounts(items: { price: number; quantity: number }[], deliveryInfo?: any) {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+  const subtotalIncludingVat = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
+  // Extract VAT from subtotal (prices include 16% VAT in Kenya)
+  // VAT amount = Total * (16/116)
+  const vat = Math.round((subtotalIncludingVat * 16 / 116) * 100) / 100;
+  const subtotalBeforeVat = Math.round((subtotalIncludingVat - vat) * 100) / 100;
   
   // Use delivery info if provided, otherwise use standard shipping
   let shippingCost = STANDARD_SHIPPING;
   if (deliveryInfo && typeof deliveryInfo.finalCost === 'number') {
     shippingCost = deliveryInfo.finalCost;
-  } else if (subtotal > FREE_SHIPPING_THRESHOLD) {
+  } else if (subtotalIncludingVat > FREE_SHIPPING_THRESHOLD) {
     shippingCost = 0;
   }
   
-  const total = Math.round((subtotal + tax + shippingCost) * 100) / 100;
-  return { subtotal, tax, shippingCost, total };
+  const total = Math.round((subtotalIncludingVat + shippingCost) * 100) / 100;
+  return { subtotal: subtotalBeforeVat, tax: vat, shippingCost, total };
 }
 
 function isMongoId(value: unknown): value is string {
@@ -46,8 +51,8 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     if (!shippingAddress?.name || !shippingAddress?.email || !shippingAddress?.phone
-      || !shippingAddress?.address || !shippingAddress?.city
-      || !shippingAddress?.country || !shippingAddress?.postalCode) {
+      || !shippingAddress?.address || !shippingAddress?.country
+      || !shippingAddress?.county) {
       return res.status(400).json({ message: 'Complete shipping address is required' });
     }
 
@@ -94,9 +99,8 @@ router.post('/', authMiddleware, async (req, res) => {
     await order.save();
     await order.populate('items.product');
 
-    if (!order.orderType || order.orderType === 'standard') {
-      void emailNewShopOrder(order).catch((e) => console.error('[email] new shop order:', e));
-    }
+    // Email will be sent after successful payment verification, not on order creation
+    // This prevents sending emails for cancelled/failed payments
 
     res.status(201).json({
       message: 'Order created successfully',
@@ -459,6 +463,132 @@ router.get('/admin/stats', authMiddleware, async (req, res) => {
         paidOrders: 0,
       },
       monthlyStats,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Confirm delivery receipt
+router.post('/:orderId/confirm-delivery', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { orderId } = req.params;
+
+    const order = await Order.findOne({ _id: orderId, userId: req.user.userId });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ message: 'Order must be delivered before confirming receipt' });
+    }
+
+    if (order.deliveryConfirmedAt) {
+      return res.status(400).json({ message: 'Delivery already confirmed' });
+    }
+
+    order.deliveryConfirmedAt = new Date();
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Delivery confirmed successfully',
+      data: order,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Submit review for order items
+router.post('/:orderId/review', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { orderId } = req.params;
+    const { reviews } = req.body; // Array of { productId, rating, title, comment }
+
+    if (!reviews || !Array.isArray(reviews)) {
+      return res.status(400).json({ message: 'Reviews array is required' });
+    }
+
+    const order = await Order.findOne({ _id: orderId, userId: req.user.userId });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ message: 'Order must be delivered before reviewing' });
+    }
+
+    const createdReviews = [];
+    const reviewedProductIds = [];
+
+    for (const reviewData of reviews) {
+      const { productId, rating, title, comment } = reviewData;
+
+      // Check if product is in the order
+      const itemInOrder = order.items.some((item: any) => item.productId?.toString() === productId);
+      if (!itemInOrder) {
+        continue; // Skip if product not in order
+      }
+
+      // Check if already reviewed
+      const existingReview = await Review.findOne({
+        userId: req.user.userId,
+        productId,
+        orderId,
+      });
+
+      if (existingReview) {
+        continue; // Skip if already reviewed
+      }
+
+      // Create review
+      const review = await Review.create({
+        userId: req.user.userId,
+        productId,
+        orderId,
+        rating,
+        title,
+        comment,
+        verifiedPurchase: true,
+      });
+
+      createdReviews.push(review);
+      reviewedProductIds.push(productId);
+
+      // Update product review aggregations
+      const allReviews = await Review.find({ productId });
+      const averageRating =
+        allReviews.length > 0
+          ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
+          : 0;
+
+      await mongoose.model('Product').findByIdAndUpdate(productId, {
+        averageRating: Math.round(averageRating * 10) / 10,
+        reviewCount: allReviews.length,
+      });
+    }
+
+    // Update order with reviewed product IDs
+    if (reviewedProductIds.length > 0) {
+      order.reviewSubmitted = [...(order.reviewSubmitted || []), ...reviewedProductIds];
+      await order.save();
+    }
+
+    res.json({
+      success: true,
+      message: 'Reviews submitted successfully',
+      data: createdReviews,
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

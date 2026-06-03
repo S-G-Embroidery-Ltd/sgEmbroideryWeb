@@ -91,15 +91,14 @@ export const ordersAPI = {
       email: string;
       phone: string;
       address: string;
-      city: string;
       country: string;
-      postalCode: string;
+      county: string;
+      postalCode?: string;
     };
     deliveryInfo?: {
       zone: string;
       zoneName: string;
-      town: string;
-      county?: string;
+      county: string;
       baseCost: number;
       finalCost: number;
       estimatedDays: number;
@@ -116,6 +115,10 @@ export const ordersAPI = {
     api.post(`/orders/${orderId}/mpesa-code`, { code }),
   updateStatus: (id: string, status: string) =>
     api.patch(`/orders/${id}/status`, { status }),
+  confirmDelivery: (orderId: string) =>
+    api.post(`/orders/${orderId}/confirm-delivery`),
+  submitReview: (orderId: string, reviews: Array<{ productId: string; rating: number; title?: string; comment: string }>) =>
+    api.post(`/orders/${orderId}/review`, { reviews }),
 };
 
 export const userAPI = {
@@ -126,6 +129,36 @@ export const userAPI = {
   getFavorites: () => api.get('/user/favorites'),
   updateProfile: (data: { name: string }) =>
     api.patch('/user/profile', data),
+};
+
+export const reviewsAPI = {
+  getProductReviews: (productId: string, params?: { limit?: number; skip?: number; rating?: number }) =>
+    api.get(`/reviews/product/${productId}`, { params }),
+  createReview: (data: { productId: string; orderId?: string; rating: number; title?: string; comment: string }) =>
+    api.post('/reviews', data),
+  updateReview: (reviewId: string, data: { rating?: number; title?: string; comment?: string }) =>
+    api.put(`/reviews/${reviewId}`, data),
+  deleteReview: (reviewId: string) =>
+    api.delete(`/reviews/${reviewId}`),
+  getUserReviews: (userId: string) =>
+    api.get(`/reviews/user/${userId}`),
+  markHelpful: (reviewId: string) =>
+    api.post(`/reviews/${reviewId}/helpful`),
+};
+
+export const paymentsAPI = {
+  initiate: (data: { orderId: string; email: string }) =>
+    api.post('/payments/initiate', data),
+  verify: (reference: string) =>
+    publicApi.post('/payments/verify', { reference }),
+  getHistory: (params?: { limit?: number; skip?: number; status?: string; startDate?: string; endDate?: string }) =>
+    api.get('/payments/history', { params }),
+  getAnalytics: (params?: { startDate?: string; endDate?: string }) =>
+    api.get('/payments/analytics', { params }),
+  getDetails: (paymentId: string) =>
+    api.get(`/payments/${paymentId}`),
+  processRefund: (paymentId: string, data: { refundAmount: number; refundReason: string }) =>
+    api.post(`/payments/${paymentId}/refund`, data),
 };
 
 export const toolsAPI = {
@@ -168,17 +201,10 @@ export const toolsAPI = {
   },
 };
 
-export const paymentsAPI = {
-  initiate: (data: { orderId: string; email: string }) =>
-    api.post('/payments/initiate', data),
-  verify: (reference: string) =>
-    publicApi.post('/payments/verify', { reference }),
-};
-
 export interface DeliveryAddress {
   country: string;
-  county?: string;
-  town: string;
+  county: string;
+  streetAddress: string;
   postalCode?: string;
 }
 
