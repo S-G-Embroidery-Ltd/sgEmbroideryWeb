@@ -239,6 +239,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For support, please contact:
-- Email: info@sgembroidery.com
-- Phone: +254 700 000 000
-- WhatsApp: +254 700 000 000
+- Email: sgembroideryltd@gmail.com
+- Phone: +254 704 038 775 / +254 710 422 557
+- WhatsApp: +254 710 422 557

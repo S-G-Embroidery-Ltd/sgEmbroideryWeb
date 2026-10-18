@@ -233,7 +233,7 @@ const LogoEmbroidery = () => {
                   onChange={handleInputChange}
                   required
                   className="w-full px-4 py-3 border border-primary-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="+254 700 000 000"
+                  placeholder="+254 704 038 775"
                 />
               </div>
               <div>

@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
+import { Facebook, Linkedin, Instagram, Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
+
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+  </svg>
+);
 import sgLogo from '../../assets/sg.png';
 import { whatsappChannelUrl, whatsappChannelHref } from '../../config/site';
 
@@ -27,36 +33,40 @@ const Footer = () => {
             </a>
             <div className="flex flex-wrap gap-4">
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/p/S-G-Embroidery-Ltd-100093005648019/"
                 className="text-white hover:text-secondary-400 transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5" />
               </a>
               <a
-                href="https://twitter.com"
+                href="https://ke.linkedin.com/company/s-g-embroidery-ltd"
                 className="text-white hover:text-secondary-400 transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="LinkedIn"
               >
-                <Twitter className="w-5 h-5" />
+                <Linkedin className="w-5 h-5" />
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/sgembroideryltd/"
                 className="text-white hover:text-secondary-400 transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="https://youtube.com"
+                href="https://www.tiktok.com/@sg_embroidery_ltd"
                 className="text-white hover:text-secondary-400 transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="TikTok"
               >
-                <Youtube className="w-5 h-5" />
+                <TikTokIcon className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -117,15 +127,18 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-secondary-400 shrink-0 mt-0.5" />
-                <span className="text-primary-100">+254 700 000 000</span>
+                <div className="text-primary-100 flex flex-col">
+                  <a href="tel:+254704038775" className="hover:text-secondary-400 transition-colors">+254 704 038 775</a>
+                  <a href="tel:+254710422557" className="hover:text-secondary-400 transition-colors">+254 710 422 557</a>
+                </div>
               </div>
               <div className="flex items-start gap-2">
                 <Mail className="w-4 h-4 text-secondary-400 shrink-0 mt-0.5" />
-                <span className="text-primary-100">info@sgembroidery.com</span>
+                <a href="mailto:sgembroideryltd@gmail.com" className="text-primary-100 hover:text-secondary-400 transition-colors">sgembroideryltd@gmail.com</a>
               </div>
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-secondary-400 shrink-0 mt-0.5" />
-                <span className="text-primary-100">Nairobi, Kenya</span>
+                <span className="text-primary-100">Ras Kisauni Road, Kongowea, Mombasa</span>
               </div>
               <div>
                 <Link to="/faq" className="text-secondary-400 hover:text-secondary-300 font-medium">

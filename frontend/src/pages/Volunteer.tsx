@@ -311,7 +311,7 @@ const Volunteer = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-secondary-400/50 focus:border-secondary-400 transition-colors"
-                    placeholder="+254 700 000 000"
+                    placeholder="+254 704 038 775"
                   />
                 </div>
 
@@ -402,6 +402,7 @@ const Volunteer = () => {
             <div className="flex flex-col items-center">
               <Phone className="w-8 h-8 text-secondary-600 mb-3" />
               <h3 className="font-bold text-primary-900 mb-1">Phone</h3>
+              <p className="text-primary-600">+254 704 038 775</p>
               <p className="text-primary-600">+254 710 422 557</p>
             </div>
             <div className="flex flex-col items-center">
@@ -412,7 +413,7 @@ const Volunteer = () => {
             <div className="flex flex-col items-center">
               <MapPin className="w-8 h-8 text-secondary-600 mb-3" />
               <h3 className="font-bold text-primary-900 mb-1">Location</h3>
-              <p className="text-primary-600">Nairobi, Kenya</p>
+              <p className="text-primary-600">Kongowea, Mombasa</p>
             </div>
           </div>
         </div>

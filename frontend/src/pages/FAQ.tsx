@@ -20,7 +20,7 @@ const faqs = [
     a: 'Turnaround depends on order size and complexity. We give a clear timeline with every quote and keep you updated at each step.',
   },
   {
-    q: 'Do you ship outside Nairobi?',
+    q: 'Do you deliver outside Mombasa?',
     a: 'Yes — we can arrange delivery across Kenya. Shipping costs and timelines are confirmed before production starts.',
   },
   {

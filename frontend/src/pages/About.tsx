@@ -37,12 +37,14 @@ const About = () => {
                 Selected for Africa's biggest Anzisha Prize 2026, with Gideon Noah representing S & G Embroidery Ltd. 
                 This prestigious award recognizes very young entrepreneurs aged 15-22 across Africa.
               </p>
-              {/* <a
-                href="/anzisha-prize-2026"
+              <a
+                href="https://anzisha.org/fellows/gideon-noah/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex text-accent-700 font-semibold hover:text-accent-800 hover:underline underline-offset-2"
               >
                 View full story
-              </a> */}
+              </a>
             </div>
 
             {/* Tony Elumelu Foundation 2025 */}
@@ -118,8 +120,10 @@ const About = () => {
               <Heart className="w-8 h-8 text-accent-600 mr-3" />
               <h2 className="text-3xl font-bold text-primary-900 font-sans">Our Founding Parents</h2>
             </div>
+            <p className="text-lg font-semibold text-accent-700 mb-2">In loving memory</p>
             <p className="text-lg text-primary-700 max-w-3xl mx-auto">
               The visionaries who laid the foundation of S & G Embroidery Ltd with their dedication and entrepreneurial spirit.
+              Though they are no longer with us, their legacy lives on in every stitch we make.
             </p>
           </div>
           
@@ -128,7 +132,7 @@ const About = () => {
             <div className="bg-gradient-to-br from-primary-50 to-white rounded-3xl p-8 border border-primary-100 shadow-medium hover:shadow-lg transition-all duration-300">
               <div className="flex flex-col items-center text-center">
                 <img src="/Dad 2.png" alt="Tom Achianja" className="w-32 h-32 rounded-full mb-6 object-cover" />
-                <h3 className="text-2xl font-bold text-primary-900 mb-2 font-sans">Tom Achianja</h3>
+                <h3 className="text-2xl font-bold text-primary-900 mb-2 font-sans">Late Tom Achianja</h3>
                 <p className="text-secondary-600 font-semibold mb-4">Co-Founder & Visionary</p>
                 <div className="bg-white/80 rounded-2xl p-4 mb-4">
                   <p className="text-primary-800 italic">
@@ -136,7 +140,7 @@ const About = () => {
                   </p>
                 </div>
                 <p className="text-primary-700 text-sm leading-relaxed">
-                  With over 30 years of experience in textile arts, our father brought unparalleled expertise and artistic vision to the business. His dedication to quality craftsmanship set the standard that continues to guide us today.
+                  With over 30 years of experience in textile arts, our late father brought unparalleled expertise and artistic vision to the business. His dedication to quality craftsmanship set the standard that continues to guide us today.
                 </p>
               </div>
             </div>
@@ -145,7 +149,7 @@ const About = () => {
             <div className="bg-gradient-to-br from-secondary-50 to-white rounded-3xl p-8 border border-secondary-100 shadow-medium hover:shadow-lg transition-all duration-300">
               <div className="flex flex-col items-center text-center">
                 <img src="/Judith.jpeg" alt="Judith Odira" className="w-32 h-32 rounded-full mb-6 object-cover" />
-                <h3 className="text-2xl font-bold text-primary-900 mb-2 font-sans">Judith Odira</h3>
+                <h3 className="text-2xl font-bold text-primary-900 mb-2 font-sans">Late Judith Odira</h3>
                 <p className="text-secondary-600 font-semibold mb-4">Co-Founder & Business Mind</p>
                 <div className="bg-white/80 rounded-2xl p-4 mb-4">
                   <p className="text-primary-800 italic">
@@ -153,7 +157,7 @@ const About = () => {
                   </p>
                 </div>
                 <p className="text-primary-700 text-sm leading-relaxed">
-                  Our mother's business acumen and customer-centric approach transformed a small workshop into a thriving enterprise. Her warmth and professionalism built lasting relationships that continue to sustain our business.
+                  Our late mother's business acumen and customer-centric approach transformed a small workshop into a thriving enterprise. Her warmth and professionalism built lasting relationships that continue to sustain our business.
                 </p>
               </div>
             </div>
@@ -178,7 +182,7 @@ const About = () => {
             {/* Brother 1 */}
             <div className="bg-white rounded-3xl p-8 border border-primary-100 shadow-medium hover:shadow-lg transition-all duration-300">
               <div className="flex flex-col items-center text-center">
-                <img src="/Judith.jpeg" alt="Shem Tom" className="w-32 h-32 rounded-full mb-6 object-cover" />
+                <img src="/Shem Tom.png" alt="Shem Tom" className="w-32 h-32 rounded-full mb-6 object-cover" />
                 <h3 className="text-2xl font-bold text-primary-900 mb-2 font-sans">Shem Tom</h3>
                 <p className="text-primary-600 font-semibold mb-4">Managing Director</p>
                 <p className="text-primary-700 mb-4 leading-relaxed">
@@ -195,7 +199,7 @@ const About = () => {
             {/* Brother 2 */}
             <div className="bg-white rounded-3xl p-8 border border-primary-100 shadow-medium hover:shadow-lg transition-all duration-300">
               <div className="flex flex-col items-center text-center">
-                <img src="/Judith.jpeg" alt="Gideon Noah" className="w-32 h-32 rounded-full mb-6 object-cover" />
+                <img src="/Gideon-Noah-1-1.jpg" alt="Gideon Noah" className="w-32 h-32 rounded-full mb-6 object-cover" />
                 <h3 className="text-2xl font-bold text-primary-900 mb-2 font-sans">Gideon Noah</h3>
                 <p className="text-primary-600 font-semibold mb-4">Operations Director</p>
                 <p className="text-primary-700 mb-4 leading-relaxed">

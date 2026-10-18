@@ -131,9 +131,11 @@ const AnzishaPrize2026 = () => {
           <h2 className="text-3xl font-bold text-primary-900 font-display text-center mb-12">Our Representative</h2>
           <div className="bg-white rounded-3xl p-8 shadow-card">
             <div className="flex flex-col md:flex-row gap-8 items-center">
-              <div className="w-32 h-32 bg-gradient-to-br from-accent-100 to-accent-200 rounded-full flex items-center justify-center shrink-0">
-                <Users className="w-16 h-16 text-accent-700" />
-              </div>
+              <img
+                src="/Gideon-Noah-1-1.jpg"
+                alt="Gideon Noah"
+                className="w-32 h-32 rounded-full object-cover shrink-0"
+              />
               <div className="flex-1 text-center md:text-left">
                 <h3 className="text-2xl font-bold text-primary-900 mb-2">Gideon Noah</h3>
                 <p className="text-accent-600 font-semibold mb-4">Operations Director & Anzisha Prize Representative</p>

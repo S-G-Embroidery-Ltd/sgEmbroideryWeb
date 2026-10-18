@@ -83,7 +83,7 @@ const Contact = () => {
                 <div>
                   <h2 className="font-bold text-primary-900 mb-1">Location</h2>
                   <p className="text-primary-700 leading-relaxed">
-                    Update with your street, city, and county. Map embed can be added below when you have coordinates.
+                    Along Ras Kisauni Road, Kongowea, Mombasa, Kenya
                   </p>
                 </div>
               </div>
@@ -93,7 +93,10 @@ const Contact = () => {
                 </div>
                 <div>
                   <h2 className="font-bold text-primary-900 mb-1">Phone</h2>
-                  <a href="tel:+254710422557" className="text-primary-700 hover:text-secondary-700 font-medium">
+                  <a href="tel:+254704038775" className="block text-primary-700 hover:text-secondary-700 font-medium">
+                    +254 704 038 775
+                  </a>
+                  <a href="tel:+254710422557" className="block text-primary-700 hover:text-secondary-700 font-medium">
                     +254 710 422 557
                   </a>
                   <p className="text-sm text-primary-600 mt-1">Calls & WhatsApp</p>
@@ -140,9 +143,26 @@ const Contact = () => {
             </div>
           </div>
 
-          <div className="mt-10 rounded-3xl bg-surface-muted min-h-[200px] flex items-center justify-center text-primary-500 text-sm">
-            Map placeholder — embed Google Maps when ready
+          <div className="mt-10 rounded-3xl overflow-hidden shadow-card">
+            <iframe
+              title="S & G Embroidery Limited - Kongowea, Mombasa"
+              src="https://www.google.com/maps?q=S%20%26%20G%20Embroidery%20Limited%2C%20Ras%20Kisauni%20Road%2C%20Kongowea%2C%20Mombasa&z=16&output=embed"
+              className="w-full h-[350px] border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
           </div>
+          <p className="text-center mt-4 text-sm text-primary-600">
+            <a
+              href="https://www.google.com/maps/place/S+%26+G+Embroidery+Limited/@-4.0400798,39.6778972,17z/data=!3m1!4b1!4m6!3m5!1s0x184013001c3747b3:0x385178a1b3168116!8m2!3d-4.0400798!4d39.6804721!16s%2Fg%2F11ybz_4bt5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-secondary-700 font-semibold hover:underline"
+            >
+              Open in Google Maps
+            </a>
+          </p>
 
           <p className="text-center mt-10 text-primary-700">
             Prefer a structured request?{' '}
@@ -227,7 +247,7 @@ const Contact = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:ring-2 focus:ring-secondary-400/50 focus:border-secondary-400 transition-colors"
-                    placeholder="+254 700 000 000"
+                    placeholder="+254 704 038 775"
                   />
                 </div>
 
@@ -288,7 +308,7 @@ const Contact = () => {
               </div>
 
               <p className="text-center text-sm text-primary-600 mt-4">
-                Or call us directly at <a href="tel:+254710422557" className="font-semibold text-secondary-700 hover:text-secondary-800">+254 710 422 557</a>
+                Or call us directly at <a href="tel:+254704038775" className="font-semibold text-secondary-700 hover:text-secondary-800">+254 704 038 775</a> or <a href="tel:+254710422557" className="font-semibold text-secondary-700 hover:text-secondary-800">+254 710 422 557</a>
               </p>
             </form>
           )}

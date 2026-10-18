@@ -5,21 +5,21 @@ const openings = [
   {
     title: 'Embroidery machine operator',
     type: 'Full-time',
-    location: 'Nairobi',
+    location: 'Kongowea, Mombasa',
     summary:
       'Run multi-head embroidery machines, load designs, monitor quality, and maintain daily production schedules.',
   },
   {
     title: 'Digitizing / embroidery file specialist',
     type: 'Full-time',
-    location: 'Nairobi',
+    location: 'Kongowea, Mombasa',
     summary:
       'Convert client artwork into production-ready embroidery files (DST/EMB etc.), collaborate with production on stitch quality.',
   },
   {
     title: 'Production assistant — textiles',
     type: 'Full-time',
-    location: 'Nairobi',
+    location: 'Kongowea, Mombasa',
     summary:
       'Support hooping, trimming, quality checks, and packing. Prior experience in apparel or embroidery is a plus.',
   },
